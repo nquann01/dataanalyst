@@ -1,0 +1,40 @@
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*.swo
+
+# Node.js (Phòng trường hợp dự án dùng npm/bundler sau này)
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# Môi trường & API Keys
+.env
+.env.local
+.env.*.local
+*.pem
+
+# Các file báo cáo test do người dùng tải xuống (không nên push lên git)
+*.pdf
+*.png
+*.csv
+*.xlsx
+Bao_Cao_*.png
+Bao_Cao_*.pdf
