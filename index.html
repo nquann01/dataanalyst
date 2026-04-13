@@ -1198,71 +1198,281 @@ function sortHtmlTable(th, colIdx) {
 }
 function showLoad() { document.getElementById('out').innerHTML = `<div class="s-load"><div class="spinner"></div><div class="lsteps"><div class="lstep on" id="ls0"><div class="sdot"></div>Đang gửi dữ liệu cho AI...</div><div class="lstep" id="ls1"><div class="sdot"></div>AI đang phân tích số liệu...</div><div class="lstep" id="ls2"><div class="sdot"></div>Đang tổng hợp báo cáo...</div></div></div>`; }
 function setStep(n) { for (let i = 0; i < n; i++) { const e = document.getElementById('ls' + i); if (e) { e.classList.remove('on'); e.classList.add('dn'); } } const c = document.getElementById('ls' + n); if (c) c.classList.add('on'); }
-function mcHtml(lbl, val, cls = '', formula = '') { return `<div class="mc"><div class="mlbl">${lbl}${formula ? `<span class="calc-badge">tính</span>` : ''}</div><div class="mval ${cls}">${val || '—'}</div>${formula ? `<div class="mcalc">${formula}</div>` : ''}</div>`; }
+function mcHtml(lbl, val, cls = '', formula = '') {
+  // 1. Truy cập vào khuôn đúc
+  const template = document.getElementById('tpl-mc');
+  if (!template) return ''; // Phòng hờ lỗi
+
+  // 2. Tạo một bản sao từ khuôn
+  const clone = template.content.cloneNode(true);
+  const container = clone.querySelector('.mc');
+
+  // 3. Bơm dữ liệu vào các vị trí tương ứng (Dùng textContent để an toàn)
+  container.querySelector('.lbl-text').textContent = lbl;
+  
+  const mvalEl = container.querySelector('.mval');
+  mvalEl.textContent = val || '—';
+  if (cls) mvalEl.classList.add(cls);
+
+  // 4. Xử lý logic hiển thị công thức
+  if (formula) {
+    container.querySelector('.calc-badge').classList.remove('d-none');
+    const mcalcEl = container.querySelector('.mcalc');
+    mcalcEl.textContent = formula;
+    mcalcEl.classList.remove('d-none');
+  }
+
+  // 5. Trả về mã HTML dưới dạng chuỗi (Để tương thích với cách innerHTML hiện tại của bạn)
+  return container.outerHTML;
+}
 function nguonHtml(list) {
   if (!list || !list.length || !list[0].kenh || list[0].kenh === '—') return '';
-  const rows = list.map(n => `<tr><td>${n.kenh || '—'}</td><td style="text-align:right;font-family:'Roboto Mono', monospace;font-size:11px">${n.sotien || '—'}</td><td style="text-align:right;color:var(--warn);font-family:'Roboto Mono', monospace;font-size:11px">${n.pct || '—'}</td></tr>`).join('');
-  return `<div class="nblk"><strong>Nguồn bán hàng:</strong><table style="width:100%;margin-top:6px;border-collapse:collapse"><tr style="color:var(--tx3);font-size:9px"><th style="text-align:left;padding:3px 0;font-weight:700">Kênh</th><th style="text-align:right;font-weight:700">Doanh thu</th><th style="text-align:right;font-weight:700">% DTT</th></tr>${rows}</table></div>`;
+  const tpl = document.getElementById('tpl-nguon');
+  const rowTpl = document.getElementById('tpl-nguon-row');
+  if (!tpl || !rowTpl) return '';
+
+  const clone = tpl.content.cloneNode(true);
+  const tbody = clone.querySelector('.nguon-tbody');
+
+  list.forEach(n => {
+    const rowClone = rowTpl.content.cloneNode(true);
+    rowClone.querySelector('.n-kenh').textContent = n.kenh || '—';
+    rowClone.querySelector('.n-dt').textContent = n.sotien || '—';
+    rowClone.querySelector('.n-pct').textContent = n.pct || '—';
+    tbody.appendChild(rowClone);
+  });
+
+  const wrapper = document.createElement('div');
+  wrapper.appendChild(clone);
+  return wrapper.innerHTML;
 }
-function spHtml(list) { if (!list || !list.length) return ''; return `<div class="nblk"><strong>Sản phẩm bán chạy:</strong> ${list.map(s => `<span class="chip">${s}</span>`).join(' ')}</div>`; }
+
+function spHtml(list) {
+  if (!list || !list.length) return '';
+  const tpl = document.getElementById('tpl-sp');
+  const chipTpl = document.getElementById('tpl-sp-chip');
+  if (!tpl || !chipTpl) return '';
+
+  const clone = tpl.content.cloneNode(true);
+  const container = clone.querySelector('.sp-container');
+
+  list.forEach(s => {
+    const chipClone = chipTpl.content.cloneNode(true);
+    chipClone.querySelector('.chip').textContent = s;
+    container.appendChild(chipClone);
+    container.appendChild(document.createTextNode(' ')); // Thêm khoảng trắng giữa các chip
+  });
+
+  const wrapper = document.createElement('div');
+  wrapper.appendChild(clone);
+  return wrapper.innerHTML;
+}
+
 function dgHtml(dg, yoy) {
-  if (!dg && !yoy) return ''; let h = '<div class="nblk">'; if (dg) h += `<strong>Đánh giá:</strong> ${dg}<br>`; if (yoy && yoy !== '—') h += `<span style="color:var(--tx3)">So với cùng kỳ năm trước: </span><strong style="color:var(--warn)">${yoy}</strong>`; return h + '</div>';
+  if (!dg && (!yoy || yoy === '—')) return '';
+  const tpl = document.getElementById('tpl-dg');
+  if (!tpl) return '';
+
+  const clone = tpl.content.cloneNode(true);
+  
+  if (dg) {
+    const dgBox = clone.querySelector('.dg-box');
+    dgBox.classList.remove('d-none');
+    dgBox.querySelector('.dg-text').textContent = dg;
+  }
+  
+  if (yoy && yoy !== '—') {
+    const yoyBox = clone.querySelector('.yoy-box');
+    yoyBox.classList.remove('d-none');
+    yoyBox.querySelector('.yoy-text').textContent = yoy;
+  }
+
+  const wrapper = document.createElement('div');
+  wrapper.appendChild(clone);
+  return wrapper.innerHTML;
 }
 function storeTbl(s, regionName) {
   if (!s || !s.rows || s.rows.length === 0) return '';
-  const rows = s.rows.map(r => {
-    const isGunze = r.cat && r.cat.toLowerCase() === 'đồ lót'; const isMp = r.cat && r.cat.toLowerCase() === 'mp'; const isKosu = r.cat && (r.cat.toLowerCase() === 'giày' || r.cat.toLowerCase() === 'kosu');
-    const dtCls = isGunze ? ' class="proj-g"' : isMp ? ' class="proj-m"' : isKosu ? ' class="proj-k"' : '';
-    return `<tr ${(isGunze||isMp||isKosu)?'style="background:rgba(255,255,255,.02)"':''}><td${dtCls}>${r.cat||'—'}${isGunze?' <span style="font-size:9px;color:var(--gunze);opacity:.7">Gunze</span>':''}${isMp?' <span style="font-size:9px;color:var(--mp);opacity:.7">MP</span>':''}${isKosu?' <span style="font-size:9px;color:var(--kosu);opacity:.7">Kosu</span>':''}</td><td>${r.dt||'—'}</td><td${dtCls}>${r.khm_dt||'—'}</td></tr>`;
-  }).join('');
-  return `<table class="stbl"><thead><tr><th style="text-align:left">${s.name || regionName}</th><th>Doanh Thu Thuần</th><th>Doanh Thu KHM</th></tr></thead><tbody>${rows}</tbody></table>`;
+  
+  const tpl = document.getElementById('tpl-store-tbl');
+  const rowTpl = document.getElementById('tpl-store-row');
+  if (!tpl || !rowTpl) return '';
+
+  const clone = tpl.content.cloneNode(true);
+  const tbody = clone.querySelector('.store-tbody');
+  
+  // Gán tên cửa hàng/khu vực
+  clone.querySelector('.store-name').textContent = s.name || regionName;
+
+  s.rows.forEach(r => {
+    const rowClone = rowTpl.content.cloneNode(true);
+    const tr = rowClone.querySelector('.store-row');
+    const catCell = rowClone.querySelector('.s-cat');
+    const dtCell = rowClone.querySelector('.s-dt');
+    const khmCell = rowClone.querySelector('.s-khm');
+
+    // Logic kiểm tra ngành hàng
+    const cat = (r.cat || '').trim().toLowerCase();
+    const isGunze = cat === 'đồ lót'; 
+    const isMp = cat === 'mp'; 
+    const isKosu = cat === 'giày' || cat === 'kosu';
+
+    // 1. Xử lý màu nền và class màu sắc cho số liệu
+    if (isGunze || isMp || isKosu) {
+      tr.style.background = 'rgba(255,255,255,.02)';
+      const cls = isGunze ? 'proj-g' : (isMp ? 'proj-m' : 'proj-k');
+      catCell.classList.add(cls);
+      khmCell.classList.add(cls);
+    }
+
+    // 2. Đổ dữ liệu ngành hàng và thêm nhãn phụ (Badge)
+    catCell.textContent = r.cat || '—';
+    if (isGunze || isMp || isKosu) {
+      const badge = document.createElement('span');
+      badge.style.cssText = 'font-size:9px; opacity:.7; margin-left:4px;';
+      if (isGunze) { badge.textContent = 'Gunze'; badge.style.color = 'var(--gunze)'; }
+      else if (isMp) { badge.textContent = 'MP'; badge.style.color = 'var(--mp)'; }
+      else if (isKosu) { badge.textContent = 'Kosu'; badge.style.color = 'var(--kosu)'; }
+      catCell.appendChild(badge);
+    }
+
+    // 3. Đổ dữ liệu doanh thu
+    dtCell.textContent = r.dt || '—';
+    khmCell.textContent = r.khm_dt || '—';
+
+    tbody.appendChild(rowClone);
+  });
+
+  const wrapper = document.createElement('div');
+  wrapper.appendChild(clone);
+  return wrapper.innerHTML;
 }
 
 function renderTuan(d, gc, mc, gTot, gHCM, gHN, mTot, mHCM, mHN, period, from, to) {
-  const g = d.gunze || {}, m = d.mp || {}; const dr = (from && to) ? ` — ${from} đến ${to}` : ''; const rperiod = period ? `Tuần ${period}` : ''; const kpiCls = v => v && parseInt(v) >= 100 ? 'g' : 'w';
-  const formatDetail = (hcm, hn) => { let parts = []; if (hcm !== null) parts.push(`HCM: ${fmtNum(hcm)}`); if (hn !== null) parts.push(`HN: ${fmtNum(hn)}`); return parts.length > 0 ? `(${parts.join(' + ')})` : ''; };
-  const khmNoteHtml = (gTot !== null || mTot !== null) ? `<div class="khm-note">${gTot !== null ? `<div class="khm-item"><span>Tổng KHM Đồ lót:</span><div><span class="khm-detail">${formatDetail(gHCM, gHN)}</span> <strong style="color:var(--gunze)">${fmtNum(gTot)}</strong></div></div>` : ''}${mTot !== null ? `<div class="khm-item"><span>Tổng KHM Mỹ phẩm:</span><div><span class="khm-detail">${formatDetail(mHCM, mHN)}</span> <strong style="color:var(--mp)">${fmtNum(mTot)}</strong></div></div>` : ''}</div>` : '';
-  let storesHtml = '', storesContent = '';
-  if (d.stores_hcm && d.stores_hcm.length) storesContent += d.stores_hcm.map(s => storeTbl(s, 'Cửa hàng HCM')).join('<div class="sdiv"></div>');
-  if (d.stores_hn && d.stores_hn.length) { if (storesContent) storesContent += '<div class="sdiv"></div>'; storesContent += d.stores_hn.map(s => storeTbl(s, 'Cửa hàng HN')).join('<div class="sdiv"></div>'); }
-  if (storesContent) storesHtml = `<div class="pb"><div class="phdr"><div class="pdot" style="background:var(--warn)"></div><div class="pname" style="color:var(--warn)">Dữ liệu từ Cửa hàng</div></div>${khmNoteHtml}<div class="ssec">${storesContent}</div></div>`;
+  const layoutTpl = document.getElementById('tpl-report-layout');
+  const pbTpl = document.getElementById('tpl-pb');
+  if (!layoutTpl || !pbTpl) return;
 
-  document.getElementById('out').innerHTML = `<div class="report" id="rpt">
-    <div class="rh"><div class="rweek">${rperiod}</div><div class="rtitle">Báo Cáo Tuần${dr}</div></div>
-    <div class="pb">
-      <div class="phdr"><div class="pdot" style="background:var(--gunze)"></div><div class="pname" style="color:var(--gunze)">Dự án Gunze</div></div>
-      <div class="mgrid">
-        ${mcHtml('Chi tiêu', g.chitieu)} ${mcHtml('Số lượng data', g.data)} ${mcHtml('Tỷ lệ chốt đơn', g.tlchot)}
-        ${mcHtml('Doanh thu thuần', g.dtt, 'g')} ${mcHtml('% KPI tuần', g.dtt_kpi, kpiCls(g.dtt_kpi))} ${mcHtml('GTTB đơn hàng', g.gttb)}
-        ${mcHtml('DT hệ thống', gc.dths !== null ? fmtNum(gc.dths) : '—', 'g', 'DT thuần Sale + Tổng KHM Đồ lót')}
-        ${mcHtml('CP QC Online', gc.qcol !== null ? fmtPct(gc.qcol) : '—', 'w', 'Chi tiêu ÷ DT thuần')}
-        ${mcHtml('CP QC Online sau thuế', gc.qcst !== null ? fmtPct(gc.qcst) : '—', 'w', '(Chi tiêu×110%) ÷ (DT thuần÷1,08)')}
-        ${mcHtml('CP QC hệ thống', gc.qchs !== null ? fmtPct(gc.qchs) : '—', 'w', 'Chi tiêu ÷ DT hệ thống')}
-        ${mcHtml('Chiết khấu', g.chietkhau ? g.chietkhau + (g.chietkhau_pct ? ' (' + g.chietkhau_pct + ')' : '') : '—')}
-        ${mcHtml('Hàng trả lại', g.hangtralai ? g.hangtralai + (g.hangtralai_pct ? ' (' + g.hangtralai_pct + ')' : '') : '—')}
-      </div>
-      ${nguonHtml(g.nguon)} ${spHtml(g.sp)} ${dgHtml(g.danhgia, g.yoy)}
-    </div>
-    <div class="pb">
-      <div class="phdr"><div class="pdot" style="background:var(--mp)"></div><div class="pname" style="color:var(--mp)">Dự án Mỹ phẩm</div></div>
-      <div class="mgrid">
-        ${mcHtml('Chi tiêu', m.chitieu)} ${mcHtml('Doanh thu thuần', m.dtt, 'g')} ${mcHtml('% KPI tuần', m.dtt_kpi, kpiCls(m.dtt_kpi))}
-        ${mcHtml('GTTB', m.gttb)} ${mcHtml('DT hệ thống', mc.dths !== null ? fmtNum(mc.dths) : '—', 'g', 'DT thuần Sale + Tổng KHM MP')}
-        ${mcHtml('CP QC Online', mc.qcol !== null ? fmtPct(mc.qcol) : '—', 'w', 'Chi tiêu ÷ DT thuần')}
-        ${mcHtml('CP QC Online sau thuế', mc.qcst !== null ? fmtPct(mc.qcst) : '—', 'w', '(Chi tiêu×110%) ÷ (DT thuần÷1,08)')}
-        ${mcHtml('CP QC hệ thống', mc.qchs !== null ? fmtPct(mc.qchs) : '—', 'w', 'Chi tiêu ÷ DT hệ thống')}
-        ${mcHtml('Chiết khấu', m.chietkhau ? m.chietkhau + (m.chietkhau_pct ? ' (' + m.chietkhau_pct + ')' : '') : '—')}
-        ${mcHtml('Hàng trả lại', m.hangtralai ? m.hangtralai + (m.hangtralai_pct ? ' (' + m.hangtralai_pct + ')' : '') : '—')}
-      </div>
+  const report = layoutTpl.content.cloneNode(true);
+  const contentArea = report.querySelector('.report-content');
+
+  // 1. Thiết lập Header
+  report.querySelector('.rweek').textContent = period ? `Tuần ${period}` : '';
+  report.querySelector('.rtitle').textContent = `Báo Cáo Tuần${(from && to) ? ` — ${from} đến ${to}` : ''}`;
+
+  // 2. Hàm hỗ trợ tạo khối Dự Án (Gunze/Mỹ Phẩm)
+  const createProjectBlock = (config) => {
+    const pb = pbTpl.content.cloneNode(true);
+    const container = pb.querySelector('.pb');
+    
+    pb.querySelector('.pdot').style.background = config.color;
+    const nameEl = pb.querySelector('.pname');
+    nameEl.textContent = config.name;
+    nameEl.style.color = config.color;
+
+    // Chèn Grid chỉ số (Sử dụng hàm mcHtml đã refactor)
+    pb.querySelector('.mgrid').innerHTML = config.metrics.join('');
+
+    // Chèn các phần bổ trợ (Nguồn, SP, Đánh giá)
+    const afterGrid = pb.querySelector('.pb-after-grid');
+    afterGrid.innerHTML = config.extraHtml;
+
+    return container;
+  };
+
+  // --- KHỐI GUNZE ---
+  const g = d.gunze || {};
+  const gunzeBlock = createProjectBlock({
+    name: 'Dự án Gunze',
+    color: 'var(--gunze)',
+    metrics: [
+      mcHtml('Chi tiêu', g.chitieu), mcHtml('Số lượng data', g.data), mcHtml('Tỷ lệ chốt đơn', g.tlchot),
+      mcHtml('Doanh thu thuần', g.dtt, 'g'), mcHtml('% KPI tuần', g.dtt_kpi, (g.dtt_kpi && parseInt(g.dtt_kpi) >= 100 ? 'g' : 'w')), mcHtml('GTTB đơn hàng', g.gttb),
+      mcHtml('DT hệ thống', gc.dths !== null ? fmtNum(gc.dths) : '—', 'g', 'DT thuần Sale + Tổng KHM Đồ lót'),
+      mcHtml('CP QC Online', gc.qcol !== null ? fmtPct(gc.qcol) : '—', 'w', 'Chi tiêu ÷ DT thuần'),
+      mcHtml('CP QC Online sau thuế', gc.qcst !== null ? fmtPct(gc.qcst) : '—', 'w', '(Chi tiêu×110%) ÷ (DT thuần÷1,08)'),
+      mcHtml('CP QC hệ thống', gc.qchs !== null ? fmtPct(gc.qchs) : '—', 'w', 'Chi tiêu ÷ DT hệ thống'),
+      mcHtml('Chiết khấu', g.chietkhau ? g.chietkhau + (g.chietkhau_pct ? ' (' + g.chietkhau_pct + ')' : '') : '—'),
+      mcHtml('Hàng trả lại', g.hangtralai ? g.hangtralai + (g.hangtralai_pct ? ' (' + g.hangtralai_pct + ')' : '') : '—')
+    ],
+    extraHtml: nguonHtml(g.nguon) + spHtml(g.sp) + dgHtml(g.danhgia, g.yoy)
+  });
+  contentArea.appendChild(gunzeBlock);
+
+  // --- KHỐI MỸ PHẨM ---
+  const m = d.mp || {};
+  const mpBlock = createProjectBlock({
+    name: 'Dự án Mỹ phẩm',
+    color: 'var(--mp)',
+    metrics: [
+      mcHtml('Chi tiêu', m.chitieu), mcHtml('Doanh thu thuần', m.dtt, 'g'), mcHtml('% KPI tuần', m.dtt_kpi, (m.dtt_kpi && parseInt(m.dtt_kpi) >= 100 ? 'g' : 'w')),
+      mcHtml('GTTB', m.gttb), mcHtml('DT hệ thống', mc.dths !== null ? fmtNum(mc.dths) : '—', 'g', 'DT thuần Sale + Tổng KHM MP'),
+      mcHtml('CP QC Online', mc.qcol !== null ? fmtPct(mc.qcol) : '—', 'w', 'Chi tiêu ÷ DT thuần'),
+      mcHtml('CP QC Online sau thuế', mc.qcst !== null ? fmtPct(mc.qcst) : '—', 'w', '(Chi tiêu×110%) ÷ (DT thuần÷1,08)'),
+      mcHtml('CP QC hệ thống', mc.qchs !== null ? fmtPct(mc.qchs) : '—', 'w', 'Chi tiêu ÷ DT hệ thống'),
+      mcHtml('Chiết khấu', m.chietkhau ? m.chietkhau + (m.chietkhau_pct ? ' (' + m.chietkhau_pct + ')' : '') : '—'),
+      mcHtml('Hàng trả lại', m.hangtralai ? m.hangtralai + (m.hangtralai_pct ? ' (' + m.hangtralai_pct + ')' : '') : '—')
+    ],
+    extraHtml: `
       <div class="mgrid" style="border-top:1px solid var(--bdr)">
         <div class="mc"><div class="mlbl">Data Web</div><div class="mval">${m.web_sl || '—'} <span style="font-size:10px;color:var(--tx2)">${m.web_dat ? '(' + m.web_dat + ')' : ''}</span></div>${m.web_chot ? `<div class="mcalc">Tỷ lệ chốt: ${m.web_chot}</div>` : ''}</div>
         <div class="mc"><div class="mlbl">Data Page</div><div class="mval">${m.page_sl || '—'} <span style="font-size:10px;color:var(--tx2)">${m.page_dat ? '(' + m.page_dat + ')' : ''}</span></div>${m.page_chot ? `<div class="mcalc">Tỷ lệ chốt: ${m.page_chot}</div>` : ''}</div>
         <div class="mc"></div>
       </div>
-      ${nguonHtml(m.nguon)} ${spHtml(m.sp)} ${dgHtml(m.danhgia, m.yoy)}
-    </div>
-    ${storesHtml}
-  </div>`;
+    ` + nguonHtml(m.nguon) + spHtml(m.sp) + dgHtml(m.danhgia, m.yoy)
+  });
+  contentArea.appendChild(mpBlock);
+
+  // --- KHỐI CỬA HÀNG (Dữ liệu Store) ---
+  let storesContent = '';
+  if (d.stores_hcm && d.stores_hcm.length) storesContent += d.stores_hcm.map(s => storeTbl(s, 'Cửa hàng HCM')).join('<div class="sdiv"></div>');
+  if (d.stores_hn && d.stores_hn.length) { 
+    if (storesContent) storesContent += '<div class="sdiv"></div>'; 
+    storesContent += d.stores_hn.map(s => storeTbl(s, 'Cửa hàng HN')).join('<div class="sdiv"></div>'); 
+  }
+
+  if (storesContent || gTot !== null || mTot !== null) {
+    const storePB = pbTpl.content.cloneNode(true);
+    const storeContainer = storePB.querySelector('.pb');
+    storePB.querySelector('.pdot').style.background = 'var(--warn)';
+    const stName = storePB.querySelector('.pname');
+    stName.textContent = 'Dữ liệu từ Cửa hàng';
+    stName.style.color = 'var(--warn)';
+
+    // Xử lý KHM Note nếu có
+    if (gTot !== null || mTot !== null) {
+      const khmNoteTpl = document.getElementById('tpl-khm-note');
+      const khmItemTpl = document.getElementById('tpl-khm-item');
+      const noteClone = khmNoteTpl.content.cloneNode(true);
+      const noteContent = noteClone.querySelector('.khm-note');
+
+      const addKhmItem = (label, total, hcm, hn, color) => {
+        const item = khmItemTpl.content.cloneNode(true);
+        item.querySelector('.khm-label').textContent = label;
+        let details = [];
+        if (hcm !== null) details.push(`HCM: ${fmtNum(hcm)}`);
+        if (hn !== null) details.push(`HN: ${fmtNum(hn)}`);
+        item.querySelector('.khm-detail').textContent = details.length > 0 ? `(${details.join(' + ')})` : '';
+        const val = item.querySelector('.khm-value');
+        val.textContent = fmtNum(total);
+        val.style.color = color;
+        noteContent.appendChild(item);
+      };
+
+      if (gTot !== null) addKhmItem('Tổng KHM Đồ lót:', gTot, gHCM, gHN, 'var(--gunze)');
+      if (mTot !== null) addKhmItem('Tổng KHM Mỹ phẩm:', mTot, mHCM, mHN, 'var(--mp)');
+      
+      storePB.querySelector('.pb-before-grid').appendChild(noteClone);
+    }
+
+    storePB.querySelector('.pb-after-grid').innerHTML = `<div class="ssec">${storesContent}</div>`;
+    contentArea.appendChild(storeContainer);
+  }
+
+  // Hiển thị kết quả
+  const out = document.getElementById('out');
+  out.innerHTML = '';
+  out.appendChild(report);
 }
 
 async function doCopyKosuText() {
@@ -1309,51 +1519,34 @@ async function doCopyKosuText() {
 
 function renderKosuTuan(d, period, from, to, spendTotal, budgetHn, budgetHcm, manualKhmHn, manualKhmHcm) {
   const k = d.kosu || {};
-  const dr = (from && to) ? ` (Từ ${from} đến ${to})` : '';
-  const rperiod = period ? `Tuần ${period}` : '';
+  const tpl = document.getElementById('tpl-kosu-tuan');
+  if (!tpl) return;
 
+  const clone = tpl.content.cloneNode(true);
+  
+  // 1. Điền thông tin tiêu đề
+  const rperiod = period ? `Tuần ${period}` : '';
+  const dr = (from && to) ? ` (Từ ${from} đến ${to})` : '';
+  clone.querySelector('.rweek').textContent = rperiod;
+  clone.querySelector('.rtitle').textContent = `Báo Cáo VIP — Giày Kosu${dr}`;
+
+  // 2. Tính toán các thông số chuyên sâu (giữ nguyên logic gốc của bạn)
   const sapoDt = window.kosuSapoStats?.totalDt || 0;
   const topSp = window.kosuSapoStats?.topProducts || k.top_sp || "—";
   const kpi = parseNum(k.dt_don_hang_kpi) || 1; 
   const sapoPct = sapoDt > 0 ? ((sapoDt / kpi) * 100).toFixed(0) + '%' : '—';
   const dttSauThue = sapoDt > 0 ? sapoDt / 1.08 : 0;
-
-  const khmHn = manualKhmHn !== null && !isNaN(manualKhmHn) ? manualKhmHn : (parseNum(k.khm?.hn) || 0);
-  const khmHcm = manualKhmHcm !== null && !isNaN(manualKhmHcm) ? manualKhmHcm : (parseNum(k.khm?.hcm) || 0);
-
+  const khmHn = (manualKhmHn !== null && !isNaN(manualKhmHn)) ? manualKhmHn : (parseNum(k.khm?.hn) || 0);
+  const khmHcm = (manualKhmHcm !== null && !isNaN(manualKhmHcm)) ? manualKhmHcm : (parseNum(k.khm?.hcm) || 0);
   const dtOnlineHn = window.kosuSapoStats?.dtHn || 0;
   const dtOnlineHcm = window.kosuSapoStats?.dtHcm || 0;
   const dtOnlineConlai = window.kosuSapoStats?.dtConLai || 0;
-
   const dtHtHn = dtOnlineHn + khmHn;
   const dtHtHcm = dtOnlineHcm + khmHcm;
   const budgetConlai = spendTotal - budgetHn - budgetHcm;
 
-  const cpqcSapo = sapoDt > 0 ? pctFormat(spendTotal, sapoDt) : '—';
-
-  const spendChinh = kosuSpend?.chinh > 0 ? kosuSpend.chinh : parseNum(k.page_chinh?.chi_tieu);
-  const dtChinh = window.kosuSapoStats?.dtPageChinh || parseNum(k.page_chinh?.doanh_so) || 0;
-  const cpqcChinh = dtChinh > 0 ? pctFormat(spendChinh, dtChinh) : k.page_chinh?.cpqc || '—';
-
-  const spendPhu = kosuSpend?.phu > 0 ? kosuSpend.phu : parseNum(k.page_phu?.chi_tieu);
-  const dtPhu = window.kosuSapoStats?.dtPagePhu || parseNum(k.page_phu?.doanh_so) || 0;
-  const cpqcPhu = dtPhu > 0 ? pctFormat(spendPhu, dtPhu) : k.page_phu?.cpqc || '—';
-
-  const spendLdp = kosuSpend?.ldp > 0 ? kosuSpend.ldp : parseNum(k.ldp?.chi_tieu);
-  const dtLdp = parseNum(k.ldp?.doanh_so) || 0;
-  const cpqcLdp = dtLdp > 0 ? pctFormat(spendLdp, dtLdp) : k.ldp?.cpqc || '—';
-
-  const html = `
-    <div class="report" id="rpt" style="max-width: 800px;">
-        <div class="rh" style="border-bottom-color: var(--kosu); display:flex; justify-content:space-between; align-items:center;">
-            <div>
-                <div class="rweek" style="color:var(--kosu);">${rperiod}</div>
-                <div class="rtitle">Báo Cáo VIP — Giày Kosu${dr}</div>
-            </div>
-            <button id="btn-copy-kosu" class="btn-copy" style="border-color: var(--kosu); color: var(--kosu);" onclick="doCopyKosuText()">⎘ Copy Text Report</button>
-        </div>
-
-        <div id="kosu-text-report" style="background:var(--sur); padding:25px; border-radius:12px; border:1px solid rgba(255,152,0,0.4); font-size:14px; line-height:1.8; font-family: 'Be Vietnam Pro', sans-serif; color:var(--tx); white-space: pre-wrap; box-shadow: 0 4px 20px rgba(0,0,0,0.2);"><strong>${rperiod}:${dr}</strong>
+  // 3. Xây dựng nội dung Text Report (Dùng template literal để giữ format xuống dòng)
+  const mainText = `<strong>${rperiod}:${dr}</strong>
 - Số tiền chi tiêu: ${fmtNum(spendTotal)} (${k.chi_tieu_pct || ''})
 + So với cùng kì tháng trước: ${k.chi_tieu_mom || ''}
 + So với cùng kì năm trước: ${k.chi_tieu_yoy || ''}
@@ -1365,7 +1558,7 @@ DTT sau thuế: ${fmtNum(dttSauThue)}
 
 - GTTB Đơn hàng: ${k.gttb || '—'}
 - Chi phí QC theo đơn hàng: ${k.cpqc_don_hang || '—'}
-- Chi phí QC theo sapo: ${cpqcSapo}
+- Chi phí QC theo sapo: ${sapoDt > 0 ? pctFormat(spendTotal, sapoDt) : '—'}
 + So với cùng kì tháng trước: ${k.cpqc_mom || '—'}
 + So với cùng kì năm trước: ${k.cpqc_yoy || '—'}
 
@@ -1385,16 +1578,16 @@ Các mã hiện tại đang chạy doanh số lớn: ${topSp}
 
 Page chính:
 * Data page chính: ${k.page_chinh?.data || '—'} - Chiếm ${k.page_chinh?.chiem_pct || '—'} - Đạt ${k.page_chinh?.dat_pct || '—'} - Tỷ lệ chốt: ${k.page_chinh?.tl_chot || '—'} (${k.page_chinh?.don || '—'} đơn)
-Chi tiêu: ${fmtNum(spendChinh)}, doanh số: ${fmtNum(dtChinh)}, CPQC: ${cpqcChinh}
+Chi tiêu: ${fmtNum(parseNum(k.page_chinh?.chi_tieu))}, doanh số: ${fmtNum(parseNum(k.page_chinh?.doanh_so))}, CPQC: ${k.page_chinh?.cpqc || '—'}
 
 Page phụ: (chạy data và LDP)
 * Data page CH: ${k.page_phu?.data || '—'} - Chiếm ${k.page_phu?.chiem_pct || '—'} - Đạt ${k.page_phu?.dat_pct || '—'} - Tỷ lệ chốt: ${k.page_phu?.tl_chot || '—'} (${k.page_phu?.don || '—'} đơn)
-Chi tiêu: ${fmtNum(spendPhu)}, doanh số: ${fmtNum(dtPhu)}, CPQC: ${cpqcPhu}
+Chi tiêu: ${fmtNum(parseNum(k.page_phu?.chi_tieu))}, doanh_số: ${fmtNum(parseNum(k.page_phu?.doanh_so))}, CPQC: ${k.page_phu?.cpqc || '—'}
 
 - Data LDP đạt ${k.ldp?.dat_pct || '—'}: ${k.ldp?.dat || '—'}/${k.ldp?.tong || '—'}
 Tỷ lệ chốt đơn: ${k.ldp?.chot_don_thuc || '—'}/${k.ldp?.chot_don_tong || '—'} -> ${k.ldp?.tl_chot_don || '—'}
 Tỷ lệ đơn thành công: ${k.ldp?.don_tc_thuc || '—'}/${k.ldp?.don_tc_tong || '—'} => ${k.ldp?.tl_don_tc || '—'}
-Chi tiêu: ${fmtNum(spendLdp)}, doanh số: ${fmtNum(dtLdp)}, CPQC: ${cpqcLdp}
+Chi tiêu: ${fmtNum(parseNum(k.ldp?.chi_tieu))}, doanh số: ${fmtNum(parseNum(k.ldp?.doanh_so))}, CPQC: ${k.ldp?.cpqc || '—'}
 
 <strong>PHÂN BỔ NGÂN SÁCH VÀ DOANH THU THEO KHU VỰC</strong>
 + Hà Nội:
@@ -1408,23 +1601,26 @@ Doanh số hệ thống HCM: ${fmtNum(dtHtHcm)} - CPQC: ${pctFormat(budgetHcm, d
 Doanh số Online: ${fmtNum(dtOnlineHcm)} - CPQC: ${pctFormat(budgetHcm, dtOnlineHcm)}
 
 + Còn lại
-Ngân sách: ${fmtNum(budgetConlai)}, doanh số: ${fmtNum(dtOnlineConlai)} - CPQC: ${pctFormat(budgetConlai, dtOnlineConlai)}
+Ngân sách: ${fmtNum(budgetConlai)}, doanh số: ${fmtNum(dtOnlineConlai)} - CPQC: ${pctFormat(budgetConlai, dtOnlineConlai)}`;
 
-<div id="kosu-eval-container" style="margin-top: 15px; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 15px;">
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
-    <strong>ĐÁNH GIÁ VÀ KẾT LUẬN TỪ AI</strong>
-    <button class="btn-magic opt" style="display:inline-flex; align-items:center; padding:4px 8px; font-size:10px; cursor:pointer;" onclick="regenerateKosuEval(this)">🔄 Viết lại đánh giá</button>
-</div>
-<div id="kosu-eval-content">Đánh giá:
-${Array.isArray(k.danh_gia) ? k.danh_gia.map(item => '- ' + item).join('\n') : (k.danh_gia ? '- ' + k.danh_gia : '—')}
+  // 4. Đưa nội dung văn bản vào giao diện
+  clone.querySelector('.kosu-main-text').innerHTML = mainText;
 
-Kết luận:
-=> ${k.ket_luan || '—'}</div>
-</div></div>
-    </div>
-  `;
+  // 5. Xử lý phần Đánh giá AI
+  const evalContent = clone.querySelector('#kosu-eval-content');
+  let evalText = `Đánh giá:\n`;
+  if (Array.isArray(k.danh_gia)) {
+    evalText += k.danh_gia.map(item => '- ' + item).join('\n');
+  } else {
+    evalText += k.danh_gia ? '- ' + k.danh_gia : '—';
+  }
+  evalText += `\n\nKết luận:\n=> ${k.ket_luan || '—'}`;
+  evalContent.textContent = evalText;
 
-  document.getElementById('out').innerHTML = html;
+  // 6. Hiển thị ra màn hình
+  const out = document.getElementById('out');
+  out.innerHTML = '';
+  out.appendChild(clone);
 }
 
 function renderKosuThang(d, period, from, to) {
@@ -1513,38 +1709,125 @@ Kết luận:
 }
 
 function renderThang(data, period, from, to) {
-  const dr = (from && to) ? ` — ${from} đến ${to}` : ''; const rperiod = period ? `Tháng ${period}` : '';
-  let html = `<div class="report" id="rpt"><div class="rh"><div class="rweek" style="color:var(--acc2)">${rperiod}</div><div class="rtitle">Báo Cáo Tháng${dr}</div></div>`;
+  const layoutTpl = document.getElementById('tpl-report-layout');
+  const secTpl = document.getElementById('tpl-thang-section');
+  const storeTpl = document.getElementById('tpl-store-marketing');
+  if (!layoutTpl || !secTpl || !storeTpl) return;
 
+  const report = layoutTpl.content.cloneNode(true);
+  const contentArea = report.querySelector('.report-content');
+
+  // 1. Header
+  const rperiod = period ? `Tháng ${period}` : '';
+  report.querySelector('.rweek').textContent = rperiod;
+  report.querySelector('.rweek').style.color = 'var(--acc2)';
+  report.querySelector('.rtitle').textContent = `Báo Cáo Tháng${(from && to) ? ` — ${from} đến ${to}` : ''}`;
+
+  // 2. Hàm xây dựng Section (Gunze/MP)
   const buildSection = (key, title, colorVar) => {
-    const d = data[key]; if (!d || !d.metrics || d.metrics.length === 0) return '';
-    let gridHtml = d.metrics.map(item => { let extra = item.kpi_trend && item.kpi_trend !== '—' ? `<div class="mcalc">${item.kpi_trend}</div>` : ''; return `<div class="mc"><div class="mlbl">${item.name}</div><div class="mval">${item.value}</div>${extra}</div>`; }).join('');
-    let evalHtml = `<div class="eval-content">`;
-    if (d.danh_gia && d.danh_gia.length) { evalHtml += `<ul class="eval-list">`; d.danh_gia.forEach(item => evalHtml += `<li>${item}</li>`); evalHtml += `</ul>`; }
-    if (d.ket_luan) { evalHtml += `<div><span class="ket-luan-text">Kết luận: </span><span class="ket-luan-text" style="font-weight:normal">${d.ket_luan.replace(/^Kết luận:\s*/i, '')}</span></div>`; }
-    evalHtml += `</div>`;
-    return `<div class="pb"><div class="phdr"><div class="pdot" style="background:${colorVar}"></div><div class="pname" style="color:${colorVar}">${title}</div></div><div class="mgrid">${gridHtml}</div><div class="analysis-box" style="border-radius:0 0 12px 12px; margin-bottom:0; border-left:none; border-top: 1px solid var(--bdr);"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;"><div class="analysis-title" style="margin-bottom:0;">Đánh giá:</div><button class="btn-magic opt" style="display:inline-flex; align-items:center; padding:4px 8px; font-size:10px;" onclick="regenerateEval(this, '${title}')">🔄 Viết lại đánh giá</button></div>${evalHtml}</div></div>`;
+    const d = data[key];
+    if (!d || !d.metrics || d.metrics.length === 0) return null;
+
+    const clone = secTpl.content.cloneNode(true);
+    const container = clone.querySelector('.pb');
+    
+    clone.querySelector('.pdot').style.background = colorVar;
+    const nameEl = clone.querySelector('.pname');
+    nameEl.textContent = title;
+    nameEl.style.color = colorVar;
+
+    // Chỉ số metrics
+    const metricsHtml = d.metrics.map(item => {
+      let extra = item.kpi_trend && item.kpi_trend !== '—' ? `<div class="mcalc">${item.kpi_trend}</div>` : '';
+      return `<div class="mc"><div class="mlbl">${item.name}</div><div class="mval">${item.value}</div>${extra}</div>`;
+    }).join('');
+    clone.querySelector('.section-metrics').innerHTML = metricsHtml;
+
+    // Đánh giá AI
+    let evalHtml = '';
+    if (d.danh_gia && d.danh_gia.length) {
+      evalHtml += `<ul class="eval-list">${d.danh_gia.map(item => `<li>${item}</li>`).join('')}</ul>`;
+    }
+    if (d.ket_luan) {
+      evalHtml += `<div><span class="ket-luan-text">Kết luận: </span><span class="ket-luan-text" style="font-weight:normal">${d.ket_luan.replace(/^Kết luận:\s*/i, '')}</span></div>`;
+    }
+    clone.querySelector('.eval-content').innerHTML = evalHtml;
+    
+    // Gán sự kiện cho nút viết lại
+    clone.querySelector('.btn-regen-eval').onclick = function() { regenerateEval(this, title); };
+
+    return container;
   };
 
-  html += buildSection('gunze', 'Dự án Gunze', 'var(--gunze)'); html += buildSection('mp', 'Dự án Mỹ phẩm', 'var(--mp)');
+  const gSec = buildSection('gunze', 'Dự án Gunze', 'var(--gunze)');
+  if (gSec) contentArea.appendChild(gSec);
 
+  const mSec = buildSection('mp', 'Dự án Mỹ phẩm', 'var(--mp)');
+  if (mSec) contentArea.appendChild(mSec);
+
+  // 3. Khối Cửa hàng (Marketing Performance)
   if (data.stores) {
-    const st = data.stores; let tq = st.tong_quan || {};
-    let tqHtml = `<div class="mgrid">${mcHtml('Chi phí chạy cửa hàng', tq.chi_phi, 'b', tq.chi_phi_tt ? tq.chi_phi_tt + ' so với TT' : '')}${mcHtml('Hiển thị', tq.hien_thi, '', tq.hien_thi_tt ? tq.hien_thi_tt + ' so với TT' : '')}${mcHtml('Tiếp cận (unique)', tq.tiep_can, '', tq.tiep_can_tt ? tq.tiep_can_tt + ' so với TT' : '')}</div>`;
-    let maxKhm = 0, maxDoPhu = 0; const safeParse = (v) => parseFloat(String(v).replace(/[^0-9.-]+/g,"")) || 0;
-    (st.danh_sach || []).forEach(r => { let khmVal = safeParse(r.khm); let doPhuVal = safeParse(r.do_phu); if (khmVal > maxKhm) maxKhm = khmVal; if (doPhuVal > maxDoPhu) maxDoPhu = doPhuVal; });
-    let tblRows = (st.danh_sach || []).map(r => {
-      let khmVal = safeParse(r.khm); let doPhuVal = safeParse(r.do_phu); let khmPct = maxKhm > 0 ? (khmVal / maxKhm * 100) : 0; let doPhuPct = maxDoPhu > 0 ? (doPhuVal / maxDoPhu * 100) : 0;
-      let khmBg = r.khm !== '—' && r.khm ? `linear-gradient(90deg, rgba(56,224,176,0.2) ${khmPct}%, transparent ${khmPct}%)` : '';
-      let doPhuBg = r.do_phu !== '—' && r.do_phu ? `linear-gradient(90deg, rgba(79,124,255,0.2) ${doPhuPct}%, transparent ${doPhuPct}%)` : '';
-      return `<tr><td style="font-weight:700; color:var(--tx)">${r.ten}</td><td>${r.chi_phi}</td><td>${r.so_kh}</td><td style="color:var(--acc2);font-weight:700">${r.doanh_thu}</td><td style="color:var(--warn)">${r.kpi_pct}</td><td style="background: ${khmBg};">${r.khm}</td><td style="background: ${doPhuBg};">${r.do_phu}</td></tr>`;
-    }).join('');
-    let tblHtml = `<div style="overflow-x:auto"><table class="stbl" style="margin-bottom:0;"><thead><tr><th class="sortable" onclick="sortHtmlTable(this, 0)">Cửa hàng ↕</th><th class="sortable" onclick="sortHtmlTable(this, 1)">Chi phí ↕</th><th class="sortable" onclick="sortHtmlTable(this, 2)">Số lượng KH ↕</th><th class="sortable" onclick="sortHtmlTable(this, 3)">Doanh thu ↕</th><th class="sortable" onclick="sortHtmlTable(this, 4)">So với KPI ↕</th><th class="sortable" onclick="sortHtmlTable(this, 5)">%KHM ↕</th><th class="sortable" onclick="sortHtmlTable(this, 6)">Độ phủ (hiển thị) ↕</th></tr></thead><tbody>${tblRows}</tbody></table></div>`;
-    let pt = st.phan_tich || {}; let hnHtml = (pt.hn || []).map(i => `<li>${i}</li>`).join(''); let hcmHtml = (pt.hcm || []).map(i => `<li>${i}</li>`).join('');
-    let phanTichHtml = `<div class="analysis-box" style="border-radius:0 0 12px 12px; margin-bottom:0; border-top: 1px solid var(--bdr);"><div style="font-size:12px; margin-bottom:10px;"><strong>Đánh giá chung:</strong> ${pt.chung || ''}</div><div style="font-weight:700; color:var(--tx); margin-top:10px;">- Khu vực Hà Nội</div><ul class="eval-list" style="margin-bottom:5px;">${hnHtml}</ul><div style="font-weight:700; color:var(--tx); margin-top:10px;">- Khu vực Hồ Chí Minh</div><ul class="eval-list" style="margin-bottom:15px;">${hcmHtml}</ul><div><span class="ket-luan-text">Kết Luận: </span><span style="color:var(--tx)">${(pt.ket_luan || '').replace(/^Kết luận:\s*/i, '')}</span></div></div>`;
-    html += `<div class="pb"><div class="phdr"><div class="pdot" style="background:var(--warn)"></div><div class="pname" style="color:var(--warn)">MARKETING PERFORMANCE - Kênh Cửa hàng</div><button class="btn-magic opt" style="display:inline-flex; align-items:center; margin-left:auto; padding:4px 8px; font-size:10px;" onclick="analyzeStoreData(this)">✨ Chẩn đoán Cửa hàng</button></div>${tqHtml}${tblHtml}${phanTichHtml}</div>`;
+    const st = data.stores;
+    const sClone = storeTpl.content.cloneNode(true);
+    const sContainer = sClone.querySelector('.pb');
+
+    // Summary Metrics
+    let tq = st.tong_quan || {};
+    sClone.querySelector('.summary-metrics').innerHTML = 
+      mcHtml('Chi phí chạy cửa hàng', tq.chi_phi, 'b', tq.chi_phi_tt ? tq.chi_phi_tt + ' so với TT' : '') +
+      mcHtml('Hiển thị', tq.hien_thi, '', tq.hien_thi_tt ? tq.hien_thi_tt + ' so với TT' : '') +
+      mcHtml('Tiếp cận (unique)', tq.tiep_can, '', tq.tiep_can_tt ? tq.tiep_can_tt + ' so với TT' : '');
+
+    // Bảng chi tiết dòng
+    const rowTpl = document.getElementById('tpl-store-stat-row');
+    const tbody = sClone.querySelector('.store-stat-tbody');
+    
+    // Tìm max để vẽ background gradient (Heatmap)
+    const safeParse = (v) => parseFloat(String(v).replace(/[^0-9.-]+/g,"")) || 0;
+    let maxKhm = 0, maxDoPhu = 0;
+    (st.danh_sach || []).forEach(r => {
+      let khmVal = safeParse(r.khm); let doPhuVal = safeParse(r.do_phu);
+      if (khmVal > maxKhm) maxKhm = khmVal;
+      if (doPhuVal > maxDoPhu) maxDoPhu = doPhuVal;
+    });
+
+    (st.danh_sach || []).forEach(r => {
+      const row = rowTpl.content.cloneNode(true);
+      row.querySelector('.r-name').textContent = r.ten;
+      row.querySelector('.r-cp').textContent = r.chi_phi;
+      row.querySelector('.r-kh').textContent = r.so_kh;
+      row.querySelector('.r-dt').textContent = r.doanh_thu;
+      row.querySelector('.r-kpi').textContent = r.kpi_pct;
+      
+      // Vẽ Heatmap cho KHM và Độ Phủ
+      let khmVal = safeParse(r.khm); let doPhuVal = safeParse(r.do_phu);
+      let khmPct = maxKhm > 0 ? (khmVal / maxKhm * 100) : 0;
+      let doPhuPct = maxDoPhu > 0 ? (doPhuVal / maxDoPhu * 100) : 0;
+      
+      const khmCell = row.querySelector('.r-khm');
+      khmCell.textContent = r.khm;
+      if (r.khm !== '—') khmCell.style.background = `linear-gradient(90deg, rgba(56,224,176,0.2) ${khmPct}%, transparent ${khmPct}%)`;
+
+      const phuCell = row.querySelector('.r-phu');
+      phuCell.textContent = r.do_phu;
+      if (r.do_phu !== '—') phuCell.style.background = `linear-gradient(90deg, rgba(79,124,255,0.2) ${doPhuPct}%, transparent ${doPhuPct}%)`;
+
+      tbody.appendChild(row);
+    });
+
+    // Phân tích Store
+    let pt = st.phan_tich || {};
+    sClone.querySelector('.eval-chung').textContent = pt.chung || '';
+    sClone.querySelector('.eval-list-hn').innerHTML = (pt.hn || []).map(i => `<li>${i}</li>`).join('');
+    sClone.querySelector('.eval-list-hcm').innerHTML = (pt.hcm || []).map(i => `<li>${i}</li>`).join('');
+    sClone.querySelector('.final-conclusion').textContent = (pt.ket_luan || '').replace(/^Kết luận:\s*/i, '');
+
+    contentArea.appendChild(sContainer);
   }
-  html += `</div>`; document.getElementById('out').innerHTML = html;
+
+  const out = document.getElementById('out');
+  out.innerHTML = '';
+  out.appendChild(report);
 }
 
 // --- HÀM GỌI AI CHÍNH ĐỂ LẬP BÁO CÁO (Nhiệt độ = 0) ---
@@ -2770,5 +3053,193 @@ async function applyKosuFilter(person) {
 
 
 </script>
+  <template id="tpl-mc">
+  <div class="mc">
+    <div class="mlbl">
+      <span class="lbl-text"></span>
+      <span class="calc-badge d-none">tính</span>
+    </div>
+    <div class="mval"></div>
+    <div class="mcalc d-none"></div>
+  </div>
+</template>
+  <template id="tpl-nguon">
+  <div class="nblk">
+    <strong>Nguồn bán hàng:</strong>
+    <table style="width:100%;margin-top:6px;border-collapse:collapse">
+      <thead>
+        <tr style="color:var(--tx3);font-size:9px">
+          <th style="text-align:left;padding:3px 0;font-weight:700">Kênh</th>
+          <th style="text-align:right;font-weight:700">Doanh thu</th>
+          <th style="text-align:right;font-weight:700">% DTT</th>
+        </tr>
+      </thead>
+      <tbody class="nguon-tbody"></tbody>
+    </table>
+  </div>
+</template>
+
+<template id="tpl-nguon-row">
+  <tr>
+    <td class="n-kenh"></td>
+    <td class="n-dt" style="text-align:right;font-family:'Roboto Mono',monospace;font-size:11px"></td>
+    <td class="n-pct" style="text-align:right;color:var(--warn);font-family:'Roboto Mono',monospace;font-size:11px"></td>
+  </tr>
+</template>
+
+<template id="tpl-sp">
+  <div class="nblk">
+    <strong>Sản phẩm bán chạy:</strong>
+    <span class="sp-container"></span>
+  </div>
+</template>
+
+<template id="tpl-sp-chip">
+  <span class="chip"></span>
+</template>
+
+<template id="tpl-dg">
+  <div class="nblk">
+    <div class="dg-box d-none"><strong>Đánh giá:</strong> <span class="dg-text"></span></div>
+    <div class="yoy-box d-none"><span style="color:var(--tx3)">So với cùng kỳ năm trước: </span><strong style="color:var(--warn)" class="yoy-text"></strong></div>
+  </div>
+</template>
+  <template id="tpl-store-tbl">
+  <table class="stbl">
+    <thead>
+      <tr>
+        <th class="store-name" style="text-align:left"></th>
+        <th>Doanh Thu Thuần</th>
+        <th>Doanh Thu KHM</th>
+      </tr>
+    </thead>
+    <tbody class="store-tbody"></tbody>
+  </table>
+</template>
+
+<template id="tpl-store-row">
+  <tr class="store-row">
+    <td class="s-cat"></td>
+    <td class="s-dt"></td>
+    <td class="s-khm"></td>
+  </tr>
+</template>
+  <template id="tpl-report-layout">
+  <div class="report" id="rpt">
+    <div class="rh">
+      <div class="rweek"></div>
+      <div class="rtitle"></div>
+    </div>
+    <div class="report-content"></div> </div>
+</template>
+
+<template id="tpl-pb">
+  <div class="pb">
+    <div class="phdr">
+      <div class="pdot"></div>
+      <div class="pname"></div>
+    </div>
+    <div class="pb-before-grid"></div> <div class="mgrid"></div> <div class="pb-after-grid"></div> </div>
+</template>
+
+<template id="tpl-khm-note">
+  <div class="khm-note"></div>
+</template>
+
+<template id="tpl-khm-item">
+  <div class="khm-item">
+    <span class="khm-label"></span>
+    <div>
+      <span class="khm-detail" style="font-size:10px;color:var(--tx3);margin-right:8px;font-family:'Roboto Mono'"></span>
+      <strong class="khm-value"></strong>
+    </div>
+  </div>
+</template>
+  <template id="tpl-kosu-tuan">
+  <div class="report" id="rpt" style="max-width: 800px;">
+    <div class="rh" style="border-bottom-color: var(--kosu); display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <div class="rweek" style="color:var(--kosu);"></div>
+        <div class="rtitle"></div>
+      </div>
+      <button id="btn-copy-kosu" class="btn-copy" style="border-color: var(--kosu); color: var(--kosu);" onclick="doCopyKosuText()">⎘ Copy Text Report</button>
+    </div>
+
+    <div id="kosu-text-report" style="background:var(--sur); padding:25px; border-radius:12px; border:1px solid rgba(255,152,0,0.4); font-size:14px; line-height:1.8; font-family: 'Inter', sans-serif; color:var(--tx); white-space: pre-wrap; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
+      <div class="kosu-main-text"></div>
+      
+      <div id="kosu-eval-container" style="margin-top: 15px; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 15px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+          <strong style="color: var(--kosu)">ĐÁNH GIÁ VÀ KẾT LUẬN TỪ AI</strong>
+          <button class="btn-magic opt" style="display:inline-flex; align-items:center; padding:4px 8px; font-size:10px; cursor:pointer;" onclick="regenerateKosuEval(this)">🔄 Viết lại đánh giá</button>
+        </div>
+        <div id="kosu-eval-content"></div>
+      </div>
+    </div>
+  </div>
+</template>
+  <template id="tpl-thang-section">
+  <div class="pb">
+    <div class="phdr">
+      <div class="pdot"></div>
+      <div class="pname"></div>
+    </div>
+    <div class="mgrid section-metrics"></div>
+    <div class="analysis-box" style="border-radius:0 0 12px 12px; margin-bottom:0; border-left:none; border-top: 1px solid var(--bdr);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+        <div class="analysis-title" style="margin-bottom:0;">Đánh giá:</div>
+        <button class="btn-magic opt btn-regen-eval" style="display:inline-flex; align-items:center; padding:4px 8px; font-size:10px;">🔄 Viết lại đánh giá</button>
+      </div>
+      <div class="eval-content"></div>
+    </div>
+  </div>
+</template>
+
+<template id="tpl-store-marketing">
+  <div class="pb">
+    <div class="phdr">
+      <div class="pdot" style="background:var(--warn)"></div>
+      <div class="pname" style="color:var(--warn)">MARKETING PERFORMANCE - Kênh Cửa hàng</div>
+      <button class="btn-magic opt" style="display:inline-flex; align-items:center; margin-left:auto; padding:4px 8px; font-size:10px;" onclick="analyzeStoreData(this)">✨ Chẩn đoán Cửa hàng</button>
+    </div>
+    <div class="mgrid summary-metrics"></div>
+    <div style="overflow-x:auto">
+      <table class="stbl" style="margin-bottom:0;">
+        <thead>
+          <tr>
+            <th class="sortable" onclick="sortHtmlTable(this, 0)">Cửa hàng ↕</th>
+            <th class="sortable" onclick="sortHtmlTable(this, 1)">Chi phí ↕</th>
+            <th class="sortable" onclick="sortHtmlTable(this, 2)">Số lượng KH ↕</th>
+            <th class="sortable" onclick="sortHtmlTable(this, 3)">Doanh thu ↕</th>
+            <th class="sortable" onclick="sortHtmlTable(this, 4)">So với KPI ↕</th>
+            <th class="sortable" onclick="sortHtmlTable(this, 5)">%KHM ↕</th>
+            <th class="sortable" onclick="sortHtmlTable(this, 6)">Độ phủ (hiển thị) ↕</th>
+          </tr>
+        </thead>
+        <tbody class="store-stat-tbody"></tbody>
+      </table>
+    </div>
+    <div class="analysis-box store-analysis-block" style="border-radius:0 0 12px 12px; margin-bottom:0; border-top: 1px solid var(--bdr);">
+      <div style="font-size:12px; margin-bottom:10px;"><strong>Đánh giá chung:</strong> <span class="eval-chung"></span></div>
+      <div style="font-weight:700; color:var(--tx); margin-top:10px;">- Khu vực Hà Nội</div>
+      <ul class="eval-list-hn" style="margin-bottom:5px;"></ul>
+      <div style="font-weight:700; color:var(--tx); margin-top:10px;">- Khu vực Hồ Chí Minh</div>
+      <ul class="eval-list-hcm" style="margin-bottom:15px;"></ul>
+      <div><span class="ket-luan-text">Kết Luận: </span><span class="final-conclusion" style="color:var(--tx)"></span></div>
+    </div>
+  </div>
+</template>
+
+<template id="tpl-store-stat-row">
+  <tr>
+    <td style="font-weight:700; color:var(--tx)" class="r-name"></td>
+    <td class="r-cp"></td>
+    <td class="r-kh"></td>
+    <td style="color:var(--acc2);font-weight:700" class="r-dt"></td>
+    <td style="color:var(--warn)" class="r-kpi"></td>
+    <td class="r-khm"></td>
+    <td class="r-phu"></td>
+  </tr>
+</template>
 </body>
 </html>
