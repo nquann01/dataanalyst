@@ -152,7 +152,7 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
 <body onload="initApp()">
 <header>
   <div class="logo">⚡</div>
-  <div><h1>Báo Cáo AI (Bản Tối Thượng)</h1><p>Đọc Excel/Ảnh, Hỏi đáp đối chiếu & Dự báo tương lai</p></div>
+  <div><h1>⚡Data Analysis</h1><p>Phân tích dữ liệu, Hỏi đáp đối chiếu & Dự báo tương lai - Developed by QuanNA</p></div>
 </header>
 <div class="app">
   <div class="left">
@@ -160,8 +160,8 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
       
       <div class="sec-lbl">Cài đặt API Key</div>
       <div class="api-key-box">
-        <input type="password" id="api-key-input" placeholder="Nhập Gemini API Key của bạn...">
-        <button onclick="saveApiKey()" class="btn-save-key">Lưu & Kiểm tra</button>
+        <input type="password" id="api-key-input" placeholder="Nhập API Key của bạn...">
+        <button onclick="saveApiKey()" class="btn-save-key">Check</button>
         <button onclick="clearApiKey()" class="btn-del-key">Xoá</button>
       </div>
 
@@ -170,7 +170,7 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
         <input type="radio" id="p-main" name="ptype" value="Main" checked onchange="updateUI()">
         <label for="p-main">Gunze & Mỹ Phẩm</label>
         <input type="radio" id="p-kosu" name="ptype" value="Kosu" onchange="updateUI()">
-        <label for="p-kosu" style="color: var(--kosu); font-weight: 700;">⭐ Giày Kosu (VIP)</label>
+        <label for="p-kosu" style="color: var(--kosu); font-weight: 700;">⭐ Giày Kosu</label>
       </div>
 
       <div class="sec-lbl">Loại báo cáo</div>
@@ -192,7 +192,7 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
             <input id="dto" placeholder="Đến ngày (23/3)">
           </div>
 
-          <div class="sec-lbl">Dữ liệu từ Sale (paste text)</div>
+          <div class="sec-lbl">Data Sale</div>
           <div class="iblock">
             <div class="iblock-hdr">
               <div class="idot" style="background:var(--gunze)"></div>
@@ -215,7 +215,7 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
             <textarea id="sm" placeholder="Paste toàn bộ báo cáo Mỹ phẩm từ Sale vào đây..."></textarea>
           </div>
 
-          <div class="sec-lbl">Dữ liệu từ cửa hàng (Ảnh / Excel)</div>
+          <div class="sec-lbl">Data cửa hàng (Ảnh / Excel)</div>
           <div class="iblock">
             <div class="iblock-hdr">
               <div class="idot" style="background:var(--warn)"></div>
@@ -225,7 +225,7 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
               <div class="drop-zone">
                 <input type="file" accept="image/*, .xlsx, .xls, .csv" multiple onchange="handleFiles(this.files, 'hcm')">
                 <div class="drop-lbl">
-                  <strong>📷 Tải Ảnh/Excel Cửa hàng HCM</strong>
+                  <strong>📷 Upload Ảnh/Excel Cửa hàng HCM</strong>
                   (Lấy cột: Doanh thu KHM)
                 </div>
               </div>
@@ -242,7 +242,7 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
               <div class="drop-zone">
                 <input type="file" accept="image/*, .xlsx, .xls, .csv" multiple onchange="handleFiles(this.files, 'hn')">
                 <div class="drop-lbl">
-                  <strong>📷 Tải Ảnh/Excel Cửa hàng HN</strong>
+                  <strong>📷 Upload Ảnh/Excel Cửa hàng HN</strong>
                   (Lấy cột: DTT KHM)
                 </div>
               </div>
@@ -264,7 +264,7 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
         </div>
 
         <div id="tab-main-thang" class="d-none">
-          <div class="sec-lbl">Thông পুরা báo cáo Tháng (Gunze & MP)</div>
+          <div class="sec-lbl">báo cáo Tháng (Gunze & MP)</div>
           <div class="meta-row">
             <input id="month" placeholder="Tháng số (VD: 2)" type="number">
             <input id="m-from" placeholder="Từ ngày (1/2)">
@@ -280,7 +280,7 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
             <div class="img-area">
               <div class="drop-zone">
                 <input type="file" accept="image/*, .xlsx, .xls, .csv" multiple onchange="handleFiles(this.files, 'kpi')">
-                <div class="drop-lbl"><strong>📷 Tải lên Ảnh hoặc File Excel KPI</strong></div>
+                <div class="drop-lbl"><strong>📷 Upload Ảnh hoặc File Excel KPI</strong></div>
               </div>
               <div class="previews" id="previews-kpi"></div>
             </div>
@@ -296,7 +296,7 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
             <div class="img-area">
               <div class="drop-zone">
                 <input type="file" accept="image/*, .xlsx, .xls, .csv" multiple onchange="handleFiles(this.files, 'thang_gunze')">
-                <div class="drop-lbl"><strong>📷 Tải Ảnh/Excel Gunze</strong></div>
+                <div class="drop-lbl"><strong>📷 Upload Ảnh/Excel Gunze</strong></div>
               </div>
               <div class="previews" id="previews-thang_gunze"></div>
             </div>
@@ -310,7 +310,7 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
             <div class="img-area">
               <div class="drop-zone">
                 <input type="file" accept="image/*, .xlsx, .xls, .csv" multiple onchange="handleFiles(this.files, 'thang_mp')">
-                <div class="drop-lbl"><strong>📷 Tải Ảnh/Excel Mỹ phẩm</strong></div>
+                <div class="drop-lbl"><strong>📷 Upload Ảnh/Excel Mỹ phẩm</strong></div>
               </div>
               <div class="previews" id="previews-thang_mp"></div>
             </div>
@@ -326,7 +326,7 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
             <div class="img-area">
               <div class="drop-zone">
                 <input type="file" accept=".xlsx, .xls, .csv, .txt" onchange="handleSpecialExcelFile(this.files)">
-                <div class="drop-lbl"><strong>📁 Tải lên file Excel / CSV (Ads)</strong></div>
+                <div class="drop-lbl"><strong>📁 Upload file Excel / CSV (Ads)</strong></div>
               </div>
               <div class="previews" id="preview-excel"></div>
             </div>
@@ -340,7 +340,7 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
             <div class="img-area">
               <div class="drop-zone">
                 <input type="file" accept="image/*, .xlsx, .xls, .csv" multiple onchange="handleFiles(this.files, 'thang_cuahang')">
-                <div class="drop-lbl"><strong>📷 Tải Ảnh/Excel Thực đạt CH</strong></div>
+                <div class="drop-lbl"><strong>📷 Upload Ảnh/Excel Thực đạt CH</strong></div>
               </div>
               <div class="previews" id="previews-thang_cuahang"></div>
             </div>
@@ -378,7 +378,7 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
               <div class="drop-zone" style="border-color: rgba(255,152,0,0.4); padding: 10px;">
                 <input type="file" accept=".xlsx, .xls, .csv, .txt" onchange="handleKosuAdsFile(this.files)">
                 <div class="drop-lbl">
-                  <strong style="color:var(--kosu); font-size: 11px;">📁 Tải File Facebook Ads (.CSV)</strong>
+                  <strong style="color:var(--kosu); font-size: 11px;">📁 Upload File Facebook Ads (.CSV)</strong>
                   (AI tự lọc Page Chính JPS và Page Phụ theo quy tắc)
                 </div>
               </div>
@@ -394,7 +394,7 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
               <div class="drop-zone" style="border-color: rgba(56, 224, 176, 0.4); padding: 10px; background: rgba(56, 224, 176, 0.02);">
                 <input type="file" accept=".xlsx, .xls, .csv, .txt" onchange="handleKosuSapoFile(this.files)">
                 <div class="drop-lbl">
-                  <strong style="color:var(--acc2); font-size: 11px;">🛒 Tải File Doanh Thu SAPO (.CSV)</strong>
+                  <strong style="color:var(--acc2); font-size: 11px;">🛒 Upload File Doanh Thu SAPO (.CSV)</strong>
                   (Tự động chia nguồn, vùng miền & Tìm SP Bán Chạy)
                 </div>
               </div>
@@ -412,7 +412,7 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
               <div class="drop-zone" style="border-color: var(--warn);">
                 <input type="file" accept="image/*, .xlsx, .xls, .csv" multiple onchange="handleFiles(this.files, 'kosu_stores')">
                 <div class="drop-lbl">
-                  <strong style="color:var(--warn)">📷 Tải Ảnh hoặc Excel Cửa hàng</strong>
+                  <strong style="color:var(--warn)">📷 Upload Ảnh hoặc Excel Cửa hàng</strong>
                   (AI trích xuất KHM. Hoặc có thể nhập tay ở ô bên trên)
                 </div>
               </div>
@@ -433,13 +433,13 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
           <div class="iblock" style="border-color: var(--tx2);">
             <div class="iblock-hdr">
               <div class="idot" style="background:var(--tx2)"></div>
-              <div class="iblock-title" style="color:var(--tx2)">Mục tiêu KPI Tháng</div>
+              <div class="iblock-title" style="color:var(--tx2)">KPI Tháng</div>
             </div>
             <div class="img-area">
               <div class="drop-zone">
                 <input type="file" accept="image/*, .xlsx, .xls, .csv" multiple onchange="handleFiles(this.files, 'kpi_kosu')">
                 <div class="drop-lbl">
-                  <strong>📷 Tải Ảnh hoặc File Excel KPI</strong>
+                  <strong>📷 Upload Ảnh hoặc File Excel KPI</strong>
                 </div>
               </div>
               <div class="previews" id="previews-kpi_kosu"></div>
@@ -456,7 +456,7 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
               <div class="drop-zone" style="border-color: var(--kosu);">
                 <input type="file" accept="image/*, .xlsx, .xls, .csv" multiple onchange="handleFiles(this.files, 'thang_kosu')">
                 <div class="drop-lbl">
-                  <strong style="color:var(--kosu)">📷 Tải File/Ảnh Kết quả Tháng</strong>
+                  <strong style="color:var(--kosu)">📷 Upload File/Ảnh Kết quả Tháng</strong>
                 </div>
               </div>
               <div class="previews" id="previews-thang_kosu"></div>
@@ -476,14 +476,14 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
               <div>
                 <div class="drop-zone">
                   <input type="file" accept=".xlsx, .xls, .csv" onchange="handleDbFile(this.files, 'sapo_cur')">
-                  <div class="drop-lbl"><strong>🛒 Tải Sapo</strong></div>
+                  <div class="drop-lbl"><strong>🛒 Upload file Sapo</strong></div>
                 </div>
                 <div id="prev_db_sapo_cur"></div>
               </div>
               <div>
                 <div class="drop-zone">
                   <input type="file" accept=".xlsx, .xls, .csv" onchange="handleDbFile(this.files, 'ads_cur')">
-                  <div class="drop-lbl"><strong style="color:var(--gunze)">📘 Tải FB Ads</strong></div>
+                  <div class="drop-lbl"><strong style="color:var(--gunze)">📘 Upload FB Ads</strong></div>
                 </div>
                 <div id="prev_db_ads_cur"></div>
               </div>
@@ -499,14 +499,14 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
               <div>
                 <div class="drop-zone" style="border-color: var(--tx3);">
                   <input type="file" accept=".xlsx, .xls, .csv" onchange="handleDbFile(this.files, 'sapo_prev')">
-                  <div class="drop-lbl" style="color:var(--tx3)"><strong>🛒 Tải Sapo (Cũ)</strong></div>
+                  <div class="drop-lbl" style="color:var(--tx3)"><strong>🛒 Upload file Sapo (Cũ)</strong></div>
                 </div>
                 <div id="prev_db_sapo_prev"></div>
               </div>
               <div>
                 <div class="drop-zone" style="border-color: var(--tx3);">
                   <input type="file" accept=".xlsx, .xls, .csv" onchange="handleDbFile(this.files, 'ads_prev')">
-                  <div class="drop-lbl" style="color:var(--tx3)"><strong>📘 Tải FB Ads (Cũ)</strong></div>
+                  <div class="drop-lbl" style="color:var(--tx3)"><strong>📘 Upload FB Ads (Cũ)</strong></div>
                 </div>
                 <div id="prev_db_ads_prev"></div>
               </div>
@@ -520,7 +520,7 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
       <textarea id="ai-custom-note" placeholder="VD: Nhấn mạnh vào lý do hụt doanh thu, hoặc phân tích sâu về hiệu quả chốt đơn..." style="min-height: 60px; margin-bottom: 15px; border: 1px solid var(--bdr); border-radius: 8px; background: var(--sur); padding: 10px; color: var(--tx); font-size: 11px;"></textarea>
 
     </div>
-    <button class="btn-gen" id="gbtn" onclick="gen()">✦ Tạo báo cáo bằng AI</button>
+    <button class="btn-gen" id="gbtn" onclick="gen()">✦ Tạo báo cáo</button>
   </div>
 
   <div class="right">
@@ -546,7 +546,7 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
       <div class="s-empty">
         <div class="ico">🗂️</div>
         <p>Chọn loại báo cáo, tải số liệu lên</p>
-        <p>rồi nhấn <strong style="color:var(--acc)">Tạo báo cáo bằng AI</strong></p>
+        <p>rồi nhấn <strong style="color:var(--acc)">Tạo báo cáo</strong></p>
       </div>
     </div>
     
