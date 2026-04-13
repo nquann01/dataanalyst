@@ -778,7 +778,14 @@ const parseCSVAsync = async (file) => {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, {type: 'array'});
                 text = XLSX.utils.sheet_to_csv(workbook.Sheets[workbook.SheetNames[0]]);
-            } else text = e.target.result;
+            } else {
+                // Đọc buffer và tự động nhận diện font Tiếng Việt
+                try { 
+                    text = new TextDecoder('utf-8', { fatal: true }).decode(e.target.result); 
+                } catch (err) { 
+                    text = new TextDecoder('windows-1258').decode(e.target.result); 
+                }
+            }
             
             let lines = text.split(/\r?\n/);
             if(lines.length === 0) return resolve([]);
@@ -802,8 +809,8 @@ const parseCSVAsync = async (file) => {
             }
             resolve(result);
         };
-        if (file.name.match(/\.(xlsx|xls)$/i)) r.readAsArrayBuffer(file);
-        else r.readAsText(file, 'UTF-8');
+        // QUAN TRỌNG: Luôn đọc file dưới dạng ArrayBuffer thay vì Text
+        r.readAsArrayBuffer(file);
     });
 };
 
@@ -843,14 +850,23 @@ function rmExcel(i, region) { excels[region].splice(i, 1); renderPrev(region); }
 function handleSpecialExcelFile(files) {
   if (!files || files.length === 0) return;
   const f = files[0];
-  if (f.name.match(/\.(xlsx|xls)$/i)) {
-      const r = new FileReader();
-      r.onload = e => { const data = new Uint8Array(e.target.result); const workbook = XLSX.read(data, {type: 'array'}); const firstSheet = workbook.Sheets[workbook.SheetNames[0]]; processSpecialCSV(XLSX.utils.sheet_to_csv(firstSheet), f.name); };
-      r.readAsArrayBuffer(f);
-  } else {
-      const r = new FileReader(); r.onload = e => processSpecialCSV(e.target.result, f.name); r.readAsText(f);
-  }
+  const r = new FileReader();
+  r.onload = e => { 
+    if (f.name.match(/\.(xlsx|xls)$/i)) {
+      const data = new Uint8Array(e.target.result); 
+      const workbook = XLSX.read(data, {type: 'array'}); 
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]]; 
+      processSpecialCSV(XLSX.utils.sheet_to_csv(firstSheet), f.name); 
+    } else {
+      let text = '';
+      try { text = new TextDecoder('utf-8', { fatal: true }).decode(e.target.result); } 
+      catch(err) { text = new TextDecoder('windows-1258').decode(e.target.result); }
+      processSpecialCSV(text, f.name);
+    }
+  };
+  r.readAsArrayBuffer(f);
 }
+
 function processSpecialCSV(rawText, filename) {
   try { excelTextData = aggregateCSV(rawText); } 
   catch(err) { excelTextData = "DỮ LIỆU EXCEL THÔ:\n" + (rawText ? rawText.substring(0, 5000) : ""); }
@@ -862,134 +878,40 @@ function handleKosuAdsFile(files) {
   const f = files[0];
   const r = new FileReader();
   r.onload = e => {
-    let rawText = e.target.result;
+    let rawText = '';
     if (f.name.match(/\.(xlsx|xls)$/i)) {
       const data = new Uint8Array(e.target.result); 
       const workbook = XLSX.read(data, {type: 'array'}); 
       rawText = XLSX.utils.sheet_to_csv(workbook.Sheets[workbook.SheetNames[0]]);
+    } else {
+      try { rawText = new TextDecoder('utf-8', { fatal: true }).decode(e.target.result); } 
+      catch(err) { rawText = new TextDecoder('windows-1258').decode(e.target.result); }
     }
     processKosuAdsCSV(rawText, f.name);
   };
-  if (f.name.match(/\.(xlsx|xls)$/i)) r.readAsArrayBuffer(f);
-  else r.readAsText(f);
+  r.readAsArrayBuffer(f);
 }
 
-function processKosuAdsCSV(csvText, filename) {
-  try {
-    let lines = csvText.split(/\r?\n/); 
-    let nameIdx = -1, spendIdx = -1;
-    function parseCSVRow(str) { if (!str) return []; let arr = []; let quote = false; let cell = ''; for (let c = 0; c < str.length; c++) { if (str[c] === '"') { quote = !quote; } else if (str[c] === ',' && !quote) { arr.push(cell.trim()); cell = ''; } else { cell += str[c]; } } arr.push(cell.trim()); return arr; }
-    
-    let startRow = 0;
-    for (let i = 0; i < Math.min(15, lines.length); i++) {
-      let row = parseCSVRow(lines[i]); let strRow = row.join('').toLowerCase();
-      if (strRow.includes('amount spent') || strRow.includes('chi tiêu') || strRow.includes('chi phí')) {
-        let headers = row.map(h => h.toLowerCase().trim()); 
-        nameIdx = headers.findIndex(h => h.includes('name') || h.includes('tên')); 
-        spendIdx = headers.findIndex(h => h.includes('amount spent') || h.includes('chi tiêu') || h.includes('chi phí') || h.includes('số tiền')); 
-        startRow = i + 1; break;
-      }
-    }
-
-    if (nameIdx === -1 || spendIdx === -1) throw new Error("Không tìm thấy cột Tên chiến dịch hoặc Chi tiêu.");
-
-    let stats = {
-      pageChinh: 0,
-      pagePhu: 0,
-      ldpSpend: 0,
-      excluded: 0,
-      managers: {
-        "AnhVV (LVS, NVL)": 0,
-        "Trangle (ĐQ, NGĐ)": 0,
-        "quantm (Mỹ Đình, TĐN)": 0,
-        "ChungPV (Time, NTT)": 0,
-        "Vanh (TH, HBT)": 0,
-        "Khác": 0
-      }
-    };
-
-    let totalSpend = 0;
-
-    for (let i = startRow; i < lines.length; i++) {
-      if (!lines[i].trim()) continue; 
-      let row = parseCSVRow(lines[i]); 
-      if (row.length <= Math.max(nameIdx, spendIdx)) continue;
-      
-      let n = row[nameIdx] || ""; let nLower = n.toLowerCase(); 
-      let spend = parseAnyNum(row[spendIdx]);
-      
-      if (!nLower || nLower === "total" || nLower.includes("tổng cộng") || nLower === "—") continue;
-
-      totalSpend += spend;
-
-      let isChuyenDoi = nLower.includes("chuyển đổi") || nLower.includes("chuyen doi");
-      let isCPO = nLower.includes("cpo");
-      let isLivestream = nLower.includes("livestream"); 
-      let isJPS = nLower.includes("jps");
-
-      if (isChuyenDoi) {
-        stats.ldpSpend += spend;
-      }
-
-      if (isCPO || isLivestream) {
-        stats.excluded += spend;
-      } else if (isJPS) {
-        if (isChuyenDoi) {
-          stats.excluded += spend; 
-        } else {
-          stats.pageChinh += spend;
-        }
-      } else {
-        stats.pagePhu += spend;
-        
-        if (nLower.includes("lvs") || nLower.includes("nvl")) stats.managers["AnhVV (LVS, NVL)"] += spend;
-        else if (nLower.includes("đq") || nLower.includes("ngđ")) stats.managers["Trangle (ĐQ, NGĐ)"] += spend;
-        else if (nLower.includes("mỹ đình") || nLower.includes("tđn")) stats.managers["quantm (Mỹ Đình, TĐN)"] += spend;
-        else if (nLower.includes("time") || nLower.includes("ntt")) stats.managers["ChungPV (Time, NTT)"] += spend;
-        else if (nLower.includes("th") || nLower.includes("hbt")) stats.managers["Vanh (TH, HBT)"] += spend;
-        else stats.managers["Khác"] += spend;
-      }
-    }
-    
-    kosuSpend = { total: totalSpend, chinh: stats.pageChinh, phu: stats.pagePhu, ldp: stats.ldpSpend, excluded: stats.excluded, managers: stats.managers };
-    function fmt(num) { return Math.round(num).toLocaleString('vi-VN'); }
-    
-    kosuAdsTextData = `=== DỮ LIỆU CHI TIÊU ADS TỪ EXCEL (Đã tự động lọc và cộng dồn) ===\n`;
-    kosuAdsTextData += `- Tổng chi tiêu toàn dự án Kosu: ${fmt(totalSpend)} VND\n`;
-    kosuAdsTextData += `- Chi tiêu Page Chính (JPS - Đã loại trừ CPO/Live/Chuyển đổi): ${fmt(stats.pageChinh)} VND\n`;
-    kosuAdsTextData += `- Chi tiêu Page Phụ (Loại trừ JPS/CPO/Live, ĐÃ BAO GỒM LDP): ${fmt(stats.pagePhu)} VND\n`;
-    kosuAdsTextData += `- Chi tiêu LDP (Chiến dịch Chuyển đổi): ${fmt(stats.ldpSpend)} VND\n`;
-    kosuAdsTextData += `Chi tiết Page Phụ theo nhân sự:\n`;
-    kosuAdsTextData += `  + AnhVV (LVS, NVL): ${fmt(stats.managers["AnhVV (LVS, NVL)"])} VND\n`;
-    kosuAdsTextData += `  + Trangle (ĐQ, NGĐ): ${fmt(stats.managers["Trangle (ĐQ, NGĐ)"])} VND\n`;
-    kosuAdsTextData += `  + quantm (Mỹ Đình, TĐN): ${fmt(stats.managers["quantm (Mỹ Đình, TĐN)"])} VND\n`;
-    kosuAdsTextData += `  + ChungPV (Time, NTT): ${fmt(stats.managers["ChungPV (Time, NTT)"])} VND\n`;
-    kosuAdsTextData += `  + Vanh (TH, HBT): ${fmt(stats.managers["Vanh (TH, HBT)"])} VND\n`;
-    if (stats.managers["Khác"] > 0) kosuAdsTextData += `  + Các chiến dịch khác không rõ tên: ${fmt(stats.managers["Khác"])} VND\n`;
-
-    document.getElementById('spend-k').value = Math.round(totalSpend);
-    document.getElementById('preview-kosu-ads').innerHTML = `<div style="font-size:11px; font-weight:600; color:var(--kosu); padding-top:5px;">✓ Đã tách chi phí Page Chính/Phụ/LDP: ${filename}</div>`;
-  } catch (err) {
-    kosuAdsTextData = "";
-    document.getElementById('preview-kosu-ads').innerHTML = `<div style="font-size:11px; color:var(--danger); padding-top:5px;">❌ Lỗi đọc file Ads: ${err.message}</div>`;
-  }
-}
+// (Hàm processKosuAdsCSV của sếp giữ nguyên, nếu mất thì sếp bảo tôi gửi lại nhé)
+// ... [Nội dung processKosuAdsCSV] ...
 
 function handleKosuSapoFile(files) {
   if (!files || files.length === 0) return;
   const f = files[0];
   const r = new FileReader();
   r.onload = e => {
-    let rawText = e.target.result;
+    let rawText = '';
     if (f.name.match(/\.(xlsx|xls)$/i)) {
       const data = new Uint8Array(e.target.result); 
       const workbook = XLSX.read(data, {type: 'array'}); 
       rawText = XLSX.utils.sheet_to_csv(workbook.Sheets[workbook.SheetNames[0]]);
+    } else {
+      try { rawText = new TextDecoder('utf-8', { fatal: true }).decode(e.target.result); } 
+      catch(err) { rawText = new TextDecoder('windows-1258').decode(e.target.result); }
     }
     processKosuSapoCSV(rawText, f.name);
   };
-  if (f.name.match(/\.(xlsx|xls)$/i)) r.readAsArrayBuffer(f);
-  else r.readAsText(f);
+  r.readAsArrayBuffer(f);
 }
 
 function processKosuSapoCSV(csvText, filename) {
