@@ -1547,54 +1547,67 @@ Ngân sách: ${fmtNum(budgetConlai)}, doanh số: ${fmtNum(dtOnlineConlai)} - CP
 
 function renderKosuThang(d, period, from, to) {
   const k = d || {};
-  const dr = (from && to) ? ` (Từ ${from} đến ${to})` : '';
+  const tpl = document.getElementById('tpl-kosu-thang');
+  const rowTpl = document.getElementById('tpl-kosu-mom-row');
+  if (!tpl || !rowTpl) return;
+
+  const clone = tpl.content.cloneNode(true);
+  
+  // 1. Điền thông tin tiêu đề
   const rperiod = period ? `Tháng ${period}` : (k.thang_hien_tai || 'Tháng hiện tại');
   const prevMonth = k.thang_truoc || 'Tháng trước';
+  const dr = (from && to) ? ` (Từ ${from} đến ${to})` : '';
+  
+  clone.querySelector('.rweek').textContent = rperiod;
+  clone.querySelector('.rtitle').textContent = `Báo Cáo Tháng VIP — Giày Kosu${dr}`;
+  
+  // Cập nhật tiêu đề cột bảng MoM
+  clone.querySelector('.th-prev').textContent = prevMonth;
+  clone.querySelector('.th-cur').textContent = rperiod;
 
-  const html = `
-    <div class="report" id="rpt" style="max-width: 800px;">
-        <div class="rh" style="border-bottom-color: var(--kosu); display:flex; justify-content:space-between; align-items:center;">
-            <div>
-                <div class="rweek" style="color:var(--kosu);">${rperiod}</div>
-                <div class="rtitle">Báo Cáo Tháng VIP — Giày Kosu${dr}</div>
-            </div>
-            <button id="btn-copy-kosu" class="btn-copy" style="border-color: var(--kosu); color: var(--kosu);" onclick="doCopyKosuText()">⎘ Copy Text Report</button>
-        </div>
+  // 2. Đổ dữ liệu vào bảng MoM
+  const tbody = clone.querySelector('.mom-tbody');
+  
+  // Hàm tạo dòng nhanh
+  const addMomRow = (name, dataObj, highlightCur = false, hasKpi = true, bgDark = false) => {
+    const rowClone = rowTpl.content.cloneNode(true);
+    const tr = rowClone.querySelector('tr');
+    
+    if (bgDark) tr.style.background = 'rgba(255,255,255,0.02)';
+    
+    rowClone.querySelector('.mom-name').textContent = name;
+    rowClone.querySelector('.mom-prev').textContent = dataObj?.prev || '—';
+    
+    const curCell = rowClone.querySelector('.mom-cur');
+    curCell.textContent = dataObj?.cur || '—';
+    if (highlightCur) {
+      curCell.style.color = 'var(--acc2)';
+      curCell.style.fontWeight = '700';
+    }
 
-        <div class="pb" style="border-color:var(--kosu); box-shadow: 0 4px 15px rgba(255,152,0,0.1);">
-            <div class="phdr" style="background: rgba(255,152,0,0.05); border-bottom-color: var(--kosu);">
-                <div class="pdot" style="background:var(--kosu)"></div>
-                <div class="pname" style="color:var(--kosu)">So sánh Tăng trưởng (MoM)</div>
-            </div>
-            <div style="overflow-x:auto;">
-                <table class="stbl" style="margin-bottom:0; width:100%;">
-                    <thead>
-                        <tr>
-                            <th style="text-align:left; font-size:11px; color:var(--tx);">Chỉ số</th>
-                            <th style="font-size:11px; color:var(--tx2);">${prevMonth}</th>
-                            <th style="font-size:11px; color:var(--acc2);">${rperiod}</th>
-                            <th style="font-size:11px; color:var(--warn);">Tăng/Giảm</th>
-                            <th style="font-size:11px; color:var(--kosu);">KPI Tháng</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr style="background:rgba(255,255,255,0.02);"><td>Doanh Thu Thuần</td><td>${k.doanh_thu?.prev||'—'}</td><td style="color:var(--acc2); font-weight:700;">${k.doanh_thu?.cur||'—'}</td><td style="color:var(--warn); font-weight:700;">${k.doanh_thu?.mom||'—'}</td><td style="color:var(--kosu); font-weight:700;">${k.doanh_thu?.kpi||'—'}</td></tr>
-                        <tr><td>Chi Tiêu QC</td><td>${k.chi_tieu?.prev||'—'}</td><td style="color:var(--tx);">${k.chi_tieu?.cur||'—'}</td><td style="color:var(--warn);">${k.chi_tieu?.mom||'—'}</td><td style="color:var(--kosu);">${k.chi_tieu?.kpi||'—'}</td></tr>
-                        <tr style="background:rgba(255,255,255,0.02);"><td>Tỷ lệ Me/Re (CPQC)</td><td>${k.mere?.prev||'—'}</td><td style="color:var(--tx);">${k.mere?.cur||'—'}</td><td style="color:var(--warn);">${k.mere?.mom||'—'}</td><td style="color:var(--kosu);">—</td></tr>
-                        <tr><td>Số đơn hàng</td><td>${k.don_hang?.prev||'—'}</td><td style="color:var(--acc2); font-weight:700;">${k.don_hang?.cur||'—'}</td><td style="color:var(--warn); font-weight:700;">${k.don_hang?.mom||'—'}</td><td style="color:var(--kosu);">${k.don_hang?.kpi||'—'}</td></tr>
-                        <tr style="background:rgba(255,255,255,0.02);"><td>AOV (GTTB Đơn)</td><td>${k.aov?.prev||'—'}</td><td style="color:var(--tx);">${k.aov?.cur||'—'}</td><td style="color:var(--warn);">${k.aov?.mom||'—'}</td><td style="color:var(--kosu);">${k.aov?.kpi||'—'}</td></tr>
-                        <tr><td>Data Mess</td><td>${k.data_mess?.prev||'—'}</td><td style="color:var(--tx);">${k.data_mess?.cur||'—'}</td><td style="color:var(--warn);">${k.data_mess?.mom||'—'}</td><td style="color:var(--kosu);">${k.data_mess?.kpi||'—'}</td></tr>
-                        <tr style="background:rgba(255,255,255,0.02);"><td>Data LDP</td><td>${k.data_ldp?.prev||'—'}</td><td style="color:var(--tx);">${k.data_ldp?.cur||'—'}</td><td style="color:var(--warn);">${k.data_ldp?.mom||'—'}</td><td style="color:var(--kosu);">${k.data_ldp?.kpi||'—'}</td></tr>
-                        <tr><td>Chi phí / Data</td><td>${k.cpa_data?.prev||'—'}</td><td style="color:var(--tx);">${k.cpa_data?.cur||'—'}</td><td style="color:var(--warn);">${k.cpa_data?.mom||'—'}</td><td style="color:var(--kosu);">—</td></tr>
-                        <tr style="background:rgba(255,255,255,0.02);"><td>Tỷ lệ chốt Page Chính</td><td>${k.chot_page_chinh?.prev||'—'}</td><td style="color:var(--tx);">${k.chot_page_chinh?.cur||'—'}</td><td style="color:var(--warn);">${k.chot_page_chinh?.mom||'—'}</td><td style="color:var(--kosu);">—</td></tr>
-                        <tr><td>Tỷ lệ chốt Page Phụ</td><td>${k.chot_page_phu?.prev||'—'}</td><td style="color:var(--tx);">${k.chot_page_phu?.cur||'—'}</td><td style="color:var(--warn);">${k.chot_page_phu?.mom||'—'}</td><td style="color:var(--kosu);">—</td></tr>
-                        <tr style="background:rgba(255,255,255,0.02);"><td>Tỷ lệ chốt LDP</td><td>${k.chot_ldp?.prev||'—'}</td><td style="color:var(--tx);">${k.chot_ldp?.cur||'—'}</td><td style="color:var(--warn);">${k.chot_ldp?.mom||'—'}</td><td style="color:var(--kosu);">${k.chot_ldp?.kpi||'—'}</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+    const diffCell = rowClone.querySelector('.mom-diff');
+    diffCell.textContent = dataObj?.mom || '—';
+    if (highlightCur) diffCell.style.fontWeight = '700'; // Nhấn mạnh cùng lúc với Current
 
-        <div id="kosu-text-report" style="background:var(--sur); padding:25px; border-radius:12px; border:1px solid rgba(255,152,0,0.4); font-size:14px; line-height:1.8; font-family: 'Be Vietnam Pro', sans-serif; color:var(--tx); white-space: pre-wrap; box-shadow: 0 4px 20px rgba(0,0,0,0.2);"><strong>BÁO CÁO ${rperiod.toUpperCase()} - DỰ ÁN GIÀY KOSU${dr}</strong>
+    rowClone.querySelector('.mom-kpi').textContent = hasKpi ? (dataObj?.kpi || '—') : '—';
+    
+    tbody.appendChild(rowClone);
+  };
+
+  addMomRow('Doanh Thu Thuần', k.doanh_thu, true, true, true);
+  addMomRow('Chi Tiêu QC', k.chi_tieu, false, true, false);
+  addMomRow('Tỷ lệ Me/Re (CPQC)', k.mere, false, false, true);
+  addMomRow('Số đơn hàng', k.don_hang, true, true, false);
+  addMomRow('AOV (GTTB Đơn)', k.aov, false, true, true);
+  addMomRow('Data Mess', k.data_mess, false, true, false);
+  addMomRow('Data LDP', k.data_ldp, false, true, true);
+  addMomRow('Chi phí / Data', k.cpa_data, false, false, false);
+  addMomRow('Tỷ lệ chốt Page Chính', k.chot_page_chinh, false, false, true);
+  addMomRow('Tỷ lệ chốt Page Phụ', k.chot_page_phu, false, false, false);
+  addMomRow('Tỷ lệ chốt LDP', k.chot_ldp, false, true, true);
+
+  // 3. Xây dựng nội dung Text Report (Văn bản thuần)
+  const mainText = `<strong>BÁO CÁO ${rperiod.toUpperCase()} - DỰ ÁN GIÀY KOSU${dr}</strong>
 
 <strong>1. KẾT QUẢ KINH DOANH TỔNG QUAN</strong>
 - Doanh thu thuần: ${k.doanh_thu?.cur||'—'} (So với ${prevMonth}: ${k.doanh_thu?.mom||'—'})
@@ -1611,23 +1624,25 @@ function renderKosuThang(d, period, from, to) {
 <strong>3. TỶ LỆ CHỐT ĐƠN (CONVERSION RATE)</strong>
 - Page chính: ${k.chot_page_chinh?.cur||'—'} (Tháng trước: ${k.chot_page_chinh?.prev||'—'} -> ${k.chot_page_chinh?.mom||'—'})
 - Page phụ: ${k.chot_page_phu?.cur||'—'} (Tháng trước: ${k.chot_page_phu?.prev||'—'} -> ${k.chot_page_phu?.mom||'—'})
-- LDP: ${k.chot_ldp?.cur||'—'} (Tháng trước: ${k.chot_ldp?.prev||'—'} -> ${k.chot_ldp?.mom||'—'})
+- LDP: ${k.chot_ldp?.cur||'—'} (Tháng trước: ${k.chot_ldp?.prev||'—'} -> ${k.chot_ldp?.mom||'—'})`;
 
-<div id="kosu-eval-container" style="margin-top: 15px; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 15px;">
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
-    <strong>4. ĐÁNH GIÁ VÀ KẾT LUẬN TỪ AI:</strong>
-    <button class="btn-magic opt" style="display:inline-flex; align-items:center; padding:4px 8px; font-size:10px; cursor:pointer;" onclick="regenerateKosuEval(this)">🔄 Viết lại đánh giá</button>
-</div>
-<div id="kosu-eval-content">Đánh giá:
-${Array.isArray(k.danh_gia) ? k.danh_gia.map(item => '- ' + item).join('\n') : (k.danh_gia ? '- ' + k.danh_gia : '—')}
-        
-Kết luận:
-=> ${k.ket_luan || '—'}</div>
-</div></div>
-    </div>
-  `;
+  clone.querySelector('.kosu-main-text').innerHTML = mainText;
 
-  document.getElementById('out').innerHTML = html;
+  // 4. Xử lý phần Đánh giá AI
+  const evalContent = clone.querySelector('#kosu-eval-content');
+  let evalText = `Đánh giá:\n`;
+  if (Array.isArray(k.danh_gia)) {
+    evalText += k.danh_gia.map(item => '- ' + item).join('\n');
+  } else {
+    evalText += k.danh_gia ? '- ' + k.danh_gia : '—';
+  }
+  evalText += `\n\nKết luận:\n=> ${k.ket_luan || '—'}`;
+  evalContent.textContent = evalText;
+
+  // 5. Hiển thị ra màn hình
+  const out = document.getElementById('out');
+  out.innerHTML = '';
+  out.appendChild(clone);
 }
 
 function renderThang(data, period, from, to) {
@@ -2344,208 +2359,66 @@ Trả về JSON thuần tuân thủ nghiêm ngặt cấu trúc sau:
 
         const cAll = window.kosuDbCache['All'];
 
-        const finalHtml = `
-        <div class="report" id="rpt" style="max-width:960px;">
-          <div class="rh" style="border-bottom-color:var(--acc2);display:flex;justify-content:space-between;align-items:center;">
-            <div>
-              <div class="rweek" style="color:var(--acc2);">DASHBOARD CHUYÊN SÂU</div>
-              <div class="rtitle" style="display:flex;align-items:center;gap:12px;">
-                Phân Tích Cơ Cấu Sản Phẩm & Nhân Sự Kosu
-                <select onchange="applyKosuFilter(this.value)" style="padding:6px 12px; border-radius:8px; border:1px solid var(--acc2); background:var(--sur2); color:var(--acc2); font-family:'Be Vietnam Pro'; font-weight:700; font-size:13px; outline:none; cursor:pointer; box-shadow:0 0 10px rgba(56,224,176,0.1);">
-                    <option value="All">🌟 Xem Tất Cả</option>
-                    ${NS_ORDER.map(ns => `<option value="${ns}">👤 Chỉ xem: ${ns}</option>`).join('')}
-                </select>
-              </div>
-            </div>
-            <button id="btn-copy-kosu" class="btn-copy" style="border-color:var(--acc2);color:var(--acc2);" onclick="doCopyKosuText()">⎘ Copy Report</button>
-          </div>
+        // SỬ DỤNG TEMPLATE THAY VÌ STRING HTML
+        const tpl = document.getElementById('tpl-kosu-dashboard-layout');
+        const clone = tpl.content.cloneNode(true);
+        
+        // Đổ Option Nhân Sự
+        const selectEl = clone.querySelector('#kosu-filter-select');
+        NS_ORDER.forEach(ns => {
+            const opt = document.createElement('option');
+            opt.value = ns;
+            opt.textContent = `👤 Chỉ xem: ${ns}`;
+            selectEl.appendChild(opt);
+        });
 
-          <div style="font-size:11px; color:var(--tx3); margin-bottom:20px; font-style:italic;">*Lưu ý: Khi chọn 1 nhân sự, AI sẽ tự động phân tích dữ liệu riêng của người đó. Bấm vào tiêu đề Cột (↕) để sắp xếp.</div>
+        // Bơm dữ liệu thô (Raw Data Text)
+        clone.querySelector('#kosu-text-report').innerHTML = globalRawText;
 
-          <div class="pb" style="border-color:var(--acc);margin-bottom:20px;">
-            <div class="phdr" style="background:rgba(79,124,255,0.05);border-bottom-color:var(--acc);">
-              <div class="pdot" style="background:var(--acc)"></div>
-              <div class="pname" style="color:var(--acc)">📈 Xu Hướng Doanh Thu Theo Ngày</div>
-            </div>
-            <div id="daily-chart-container" style="padding:16px 18px;">${cAll.dailyHtml}</div>
-          </div>
+        // Bơm Biểu đồ
+        clone.querySelector('#daily-chart-container').innerHTML = cAll.dailyHtml;
 
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:20px;">
-            <div class="top-box" style="background:var(--sur);padding:15px;border:1px solid var(--bdr);border-radius:10px;">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid var(--bdr);padding-bottom:10px;">
-                <div style="font-size:12px;font-weight:700;color:var(--acc2);">🏆 TOP 10 (THÁNG HIỆN TẠI)</div>
-                <div style="display:flex;gap:5px;">
-                  <button style="font-size:9px;padding:3px 8px;border-radius:4px;border:1px solid var(--acc2);background:rgba(56,224,176,0.1);color:var(--acc2);cursor:pointer;font-weight:600;transition:.2s;" onclick="changeTopSort(this,'cur','rev')">Theo DT</button>
-                  <button style="font-size:9px;padding:3px 8px;border-radius:4px;border:1px solid var(--tx3);background:transparent;color:var(--tx2);cursor:pointer;font-weight:600;transition:.2s;" onclick="changeTopSort(this,'cur','qty')">Theo SL</button>
-                </div>
-              </div>
-              <div id="top-list-cur" class="top-list" data-list="${cAll.topCurEncoded}" data-total="${cAll.totalRevCur}" style="display:flex;flex-direction:column;gap:6px;"></div>
-            </div>
+        // Bơm thuộc tính cho Top List
+        const curList = clone.querySelector('#top-list-cur');
+        curList.setAttribute('data-list', cAll.topCurEncoded);
+        curList.setAttribute('data-total', cAll.totalRevCur);
 
-            <div class="top-box" style="background:var(--sur);padding:15px;border:1px solid var(--bdr);border-radius:10px;">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid var(--bdr);padding-bottom:10px;">
-                <div style="font-size:12px;font-weight:700;color:var(--tx3);">🕒 TOP 10 (THÁNG TRƯỚC)</div>
-                <div style="display:flex;gap:5px;">
-                  <button style="font-size:9px;padding:3px 8px;border-radius:4px;border:1px solid var(--tx2);background:rgba(136,146,176,0.1);color:var(--tx2);cursor:pointer;font-weight:600;transition:.2s;" onclick="changeTopSort(this,'prev','rev')">Theo DT</button>
-                  <button style="font-size:9px;padding:3px 8px;border-radius:4px;border:1px solid var(--tx3);background:transparent;color:var(--tx3);cursor:pointer;font-weight:600;transition:.2s;" onclick="changeTopSort(this,'prev','qty')">Theo SL</button>
-                </div>
-              </div>
-              <div id="top-list-prev" class="top-list" data-list="${cAll.topPrevEncoded}" data-total="${cAll.totalRevPrev}" style="display:flex;flex-direction:column;gap:6px;opacity:0.85;"></div>
-            </div>
-          </div>
+        const prevList = clone.querySelector('#top-list-prev');
+        prevList.setAttribute('data-list', cAll.topPrevEncoded);
+        prevList.setAttribute('data-total', cAll.totalRevPrev);
 
-          <div class="pb" style="border-color:var(--danger);margin-bottom:20px;">
-            <div class="phdr" style="background:rgba(255,95,126,0.05);border-bottom-color:var(--danger);">
-              <div class="pdot" style="background:var(--danger)"></div>
-              <div class="pname" style="color:var(--danger)">↩ Tỷ Lệ Hoàn Trả Theo Nhóm Sản Phẩm</div>
-              <div id="hoan-alert-box" style="margin-left:auto;font-size:10px;background:rgba(255,95,126,0.15);color:var(--danger);border-radius:4px;padding:2px 8px; display:${cAll.hoanAlert.length > 0 ? 'block' : 'none'};">⚠ Báo động: ${cAll.hoanAlert.join(' · ')}</div>
-              <div id="hoan-ok-box" style="margin-left:auto;font-size:10px;color:var(--tx3); display:${cAll.hoanAlert.length === 0 ? 'block' : 'none'};">Hoàn &lt;12% ✅ &nbsp;12–20% 🟡 &nbsp;&gt;20% 🔴</div>
-            </div>
-            <div style="overflow-x:auto;">
-              <table class="stbl" style="margin-bottom:0;width:100%;">
-                <thead><tr>
-                  <th class="sortable" onclick="sortHtmlTable(this, 0)" style="text-align:left;color:var(--tx);">Nhóm SP ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 1)" style="color:var(--danger);">SL hoàn ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 2)" style="color:var(--tx2);" title="SL bán ra = SL thực bán + SL hoàn (gross)">SL bán ra ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 3)" style="color:var(--danger);">Tỷ lệ hoàn (HT) ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 4)" style="color:var(--tx2);">Tỷ lệ hoàn (TT) ↕</th>
-                </tr></thead>
-                <tbody id="hoan-tbody">${cAll.hoanRows}</tbody>
-              </table>
-            </div>
-            <div style="padding:12px 18px; background:rgba(255,95,126,0.03); border-top:1px dashed var(--danger);">
-              <div style="font-size:11px; font-weight:700; color:var(--danger); margin-bottom:6px;">💡 Phân tích từ AI:</div><ul id="ai-eval-hoan" style="margin:0; padding-left:16px; font-size:12px; color:var(--tx); line-height:1.6;">${renderAiList(parsedAi.eval_hoan)}</ul>
-            </div>
-          </div>
+        // Bơm dữ liệu cho các bảng (Sử dụng innerHTML cho các chuỗi row đã được tạo ra trong vòng lặp)
+        clone.querySelector('#hoan-tbody').innerHTML = cAll.hoanRows;
+        clone.querySelector('#channel-tbody').innerHTML = cAll.channelRows;
+        clone.querySelector('#page-tbody').innerHTML = cAll.pageRows;
+        clone.querySelector('#nhansu-tbody').innerHTML = globalNhanSuRows;
+        clone.querySelector('#cats-tbody').innerHTML = cAll.catsRows;
 
-          <div class="pb" style="border-color:var(--acc);margin-bottom:20px;">
-            <div class="phdr" style="background:rgba(79,124,255,0.05);border-bottom-color:var(--acc);">
-              <div class="pdot" style="background:var(--acc)"></div>
-              <div class="pname" style="color:var(--acc)">⚡ Hiệu Quả Theo Nguồn / Kênh</div>
-            </div>
-            <div style="overflow-x:auto;">
-              <table class="stbl" style="margin-bottom:0;width:100%;">
-                <thead><tr>
-                  <th class="sortable" onclick="sortHtmlTable(this, 0)" style="text-align:left;color:var(--tx);">Kênh ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 1)" style="color:var(--acc2);">Tỷ trọng DT ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 2)" style="color:var(--acc2);">Doanh thu ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 3)" style="color:var(--tx);">Đơn ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 4)" style="color:var(--danger);">Tỷ lệ hoàn ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 5)" style="color:var(--gunze);">Chi tiêu Ads ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 6)" style="color:var(--acc2);">ROAS ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 7)" style="color:var(--warn);">CPO ↕</th>
-                </tr></thead>
-                <tbody id="channel-tbody">${cAll.channelRows}</tbody>
-              </table>
-            </div>
-            <div style="padding:12px 18px; background:rgba(79,124,255,0.03); border-top:1px dashed var(--acc);">
-              <div style="font-size:11px; font-weight:700; color:var(--acc); margin-bottom:6px;">💡 Phân tích từ AI:</div><ul id="ai-eval-kenh" style="margin:0; padding-left:16px; font-size:12px; color:var(--tx); line-height:1.6;">${renderAiList(parsedAi.eval_kenh)}</ul>
-            </div>
-          </div>
+        // Cập nhật trạng thái Cảnh báo Hoàn trả
+        if(cAll.hoanAlert.length > 0) { 
+            const alertBox = clone.querySelector('#hoan-alert-box');
+            alertBox.innerHTML = `⚠ Báo động: ${cAll.hoanAlert.join(' · ')}`; 
+            alertBox.style.display = 'block'; 
+        } else { 
+            clone.querySelector('#hoan-ok-box').style.display = 'block'; 
+        }
 
-          <div class="pb" style="border-color:#38e0b0;margin-bottom:20px;">
-            <div class="phdr" style="background:rgba(56,224,176,0.05);border-bottom-color:#38e0b0;">
-              <div class="pdot" style="background:#38e0b0"></div>
-              <div class="pname" style="color:#38e0b0">📱 Hiệu Quả Chi Tiết Từng Page & LDP</div>
-            </div>
-            <div style="overflow-x:auto;">
-              <table class="stbl" style="margin-bottom:0;width:100%;">
-                <thead><tr>
-                  <th class="sortable" onclick="sortHtmlTable(this, 0)" style="text-align:left;color:var(--tx);">Tên Page / LDP ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 1)" style="color:var(--acc2);">DT (HT) ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 2)" style="color:var(--tx2);">DT (TT) ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 3)" style="color:var(--warn);">MoM DT ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 4)" style="color:var(--tx);">Đơn ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 5)" style="color:var(--danger);">Hoàn (HT) ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 6)" style="color:var(--tx2);">Hoàn (TT) ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 7)" style="color:var(--gunze);">Chi tiêu ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 8)" style="color:var(--warn);">MoM Spend ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 9)" style="color:var(--acc2);">ROAS ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 10)" style="color:var(--warn);">CPO ↕</th>
-                </tr></thead>
-                <tbody id="page-tbody">${cAll.pageRows}</tbody>
-              </table>
-            </div>
-            <div style="padding:12px 18px; background:rgba(56,224,176,0.03); border-top:1px dashed #38e0b0;">
-              <div style="font-size:11px; font-weight:700; color:#38e0b0; margin-bottom:6px;">💡 Phân tích từ AI (Chi tiết Page):</div>
-              <ul id="ai-eval-page" style="margin:0; padding-left:16px; font-size:12px; color:var(--tx); line-height:1.6;">${renderAiList(parsedAi.eval_page)}</ul>
-            </div>
-          </div>
-
-          <div class="pb" style="border-color:var(--warn);margin-bottom:20px;">
-            <div class="phdr" style="background:rgba(255,188,87,0.05);border-bottom-color:var(--warn);">
-              <div class="pdot" style="background:var(--warn)"></div>
-              <div class="pname" style="color:var(--warn)">👤 Hiệu Quả TỔNG Theo Nhân Sự (Bảng Tĩnh)</div>
-            </div>
-            <div style="overflow-x:auto;">
-              <table class="stbl" style="margin-bottom:0;width:100%;">
-                <thead><tr>
-                  <th class="sortable" onclick="sortHtmlTable(this, 0)" style="text-align:left;color:var(--tx);">Nhân sự ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 1)" style="color:var(--kosu);">Tỷ trọng ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 2)" style="color:var(--acc2);">DT (HT) ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 3)" style="color:var(--tx2);">DT (TT) ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 4)" style="color:var(--warn);">MoM DT ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 5)" style="color:var(--tx);">Đơn (HT) ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 6)" style="color:var(--tx2);">Đơn (TT) ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 7)" style="color:var(--warn);">MoM Đơn ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 8)" style="color:var(--danger);">Hoàn (HT) ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 9)" style="color:var(--tx2);">Hoàn (TT) ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 10)" style="color:var(--gunze);">Chi tiêu (HT) ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 11)" style="color:var(--tx2);">Chi tiêu (TT) ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 12)" style="color:var(--warn);">MoM Spend ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 13)" style="color:var(--acc2);">ROAS ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 14)" style="color:var(--warn);">CPO ↕</th>
-                </tr></thead>
-                <tbody>${globalNhanSuRows}</tbody>
-              </table>
-            </div>
-            <div style="padding:12px 18px; background:rgba(255,188,87,0.03); border-top:1px dashed var(--warn);">
-              <div style="font-size:11px; font-weight:700; color:var(--warn); margin-bottom:6px;">💡 Phân tích từ AI:</div><ul id="ai-eval-nhansu" style="margin:0; padding-left:16px; font-size:12px; color:var(--tx); line-height:1.6;">${renderAiList(parsedAi.eval_nhansu)}</ul>
-            </div>
-          </div>
-
-          <div class="pb" style="border-color:var(--acc2);margin-bottom:20px;">
-            <div class="phdr" style="background:rgba(56,224,176,0.05);border-bottom-color:var(--acc2);">
-              <div class="pdot" style="background:var(--acc2)"></div>
-              <div class="pname" style="color:var(--acc2)">📦 Cơ Cấu & Hiệu Quả Theo Nhóm Sản Phẩm</div>
-            </div>
-            <div style="overflow-x:auto;">
-              <table class="stbl" style="margin-bottom:0;width:100%;">
-                <thead><tr>
-                  <th class="sortable" onclick="sortHtmlTable(this, 0)" style="text-align:left;color:var(--tx);">Nhóm SP ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 1)" style="color:var(--kosu);">Tỷ trọng ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 2)" style="color:var(--tx);">DTT (HT) ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 3)" style="color:var(--tx2);">DTT (TT) ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 4)" style="color:var(--warn);">MoM DT ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 5)" style="color:var(--gunze);">CP Ads (HT) ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 6)" style="color:var(--tx2);">CP Ads (TT) ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 7)" style="color:var(--warn);">MoM CP ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 8)" style="color:var(--acc2);">CPQC (HT) ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 9)" style="color:var(--tx2);">CPQC (TT) ↕</th>
-                  <th class="sortable" onclick="sortHtmlTable(this, 10)" style="color:var(--acc2);">ROAS ↕</th>
-                </tr></thead>
-                <tbody id="cats-tbody">${cAll.catsRows}</tbody>
-              </table>
-            </div>
-            <div style="padding:12px 18px; background:rgba(56,224,176,0.03); border-top:1px dashed var(--acc2);">
-              <div style="font-size:11px; font-weight:700; color:var(--acc2); margin-bottom:6px;">💡 Phân tích từ AI:</div><ul id="ai-eval-sp" style="margin:0; padding-left:16px; font-size:12px; color:var(--tx); line-height:1.6;">${renderAiList(parsedAi.eval_sp)}</ul>
-            </div>
-          </div>
-
-          <div class="pb" style="border-color:var(--fc);">
-            <div class="phdr" style="background:rgba(179,136,255,0.05);border-bottom-color:var(--fc);">
-              <div class="pdot" style="background:var(--fc)"></div>
-              <div class="pname" style="color:var(--fc)">🎯 Đề Xuất Kế Hoạch & Hành Động Trọng Tâm (AI)</div>
-            </div>
-            <div class="nblk ai-insight-content" style="font-size:13px;line-height:1.8;padding:18px 20px;"><ul id="ai-eval-ketluan" style="margin:0; padding-left:16px; font-size:13px; color:var(--tx);">${renderAiList(parsedAi.ket_luan)}</ul></div>
-          </div>
-          <div id="kosu-text-report" class="d-none">${globalRawText}</div>
-        </div>`;
+        // Bơm dữ liệu Đánh giá AI
+        clone.querySelector('#ai-eval-sp').innerHTML = renderAiList(parsedAi.eval_sp);
+        clone.querySelector('#ai-eval-hoan').innerHTML = renderAiList(parsedAi.eval_hoan);
+        clone.querySelector('#ai-eval-kenh').innerHTML = renderAiList(parsedAi.eval_kenh);
+        clone.querySelector('#ai-eval-page').innerHTML = renderAiList(parsedAi.eval_page);
+        clone.querySelector('#ai-eval-nhansu').innerHTML = renderAiList(parsedAi.eval_nhansu);
+        clone.querySelector('#ai-eval-ketluan').innerHTML = renderAiList(parsedAi.ket_luan);
 
         setStep(3);
-        document.getElementById('out').innerHTML = finalHtml;
+        const out = document.getElementById('out');
+        out.innerHTML = '';
+        out.appendChild(clone);
+        
         saveHist('Dashboard SP', 'Kosu', document.getElementById('out').innerHTML);
         
+        // Kích hoạt sắp xếp mặc định cho danh sách Top 10
         setTimeout(() => {
             const btnCur = document.querySelector('#top-list-cur').parentElement.querySelector('button');
             const btnPrev = document.querySelector('#top-list-prev').parentElement.querySelector('button');
@@ -3163,5 +3036,94 @@ async function applyKosuFilter(person) {
     <td class="r-phu"></td>
   </tr>
 </template>
+  <template id="tpl-kosu-thang">
+  <div class="report" id="rpt" style="max-width: 800px;">
+    <div class="rh" style="border-bottom-color: var(--kosu); display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <div class="rweek" style="color:var(--kosu);"></div>
+        <div class="rtitle"></div>
+      </div>
+      <button id="btn-copy-kosu" class="btn-copy" style="border-color: var(--kosu); color: var(--kosu);" onclick="doCopyKosuText()">⎘ Copy Text Report</button>
+    </div>
+
+    <div class="pb" style="border-color:var(--kosu); box-shadow: 0 4px 15px rgba(255,152,0,0.1);">
+      <div class="phdr" style="background: rgba(255,152,0,0.05); border-bottom-color: var(--kosu);">
+        <div class="pdot" style="background:var(--kosu)"></div>
+        <div class="pname" style="color:var(--kosu)">So sánh Tăng trưởng (MoM)</div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="stbl" style="margin-bottom:0; width:100%;">
+          <thead>
+            <tr>
+              <th style="text-align:left; font-size:11px; color:var(--tx);">Chỉ số</th>
+              <th class="th-prev" style="font-size:11px; color:var(--tx2);"></th>
+              <th class="th-cur" style="font-size:11px; color:var(--acc2);"></th>
+              <th style="font-size:11px; color:var(--warn);">Tăng/Giảm</th>
+              <th style="font-size:11px; color:var(--kosu);">KPI Tháng</th>
+            </tr>
+          </thead>
+          <tbody class="mom-tbody">
+            </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="kosu-text-report" style="background:var(--sur); padding:25px; border-radius:12px; border:1px solid rgba(255,152,0,0.4); font-size:14px; line-height:1.8; font-family: 'Inter', sans-serif; color:var(--tx); white-space: pre-wrap; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
+      <div class="kosu-main-text"></div>
+      
+      <div id="kosu-eval-container" style="margin-top: 15px; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 15px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+          <strong style="color: var(--kosu)">4. ĐÁNH GIÁ VÀ KẾT LUẬN TỪ AI:</strong>
+          <button class="btn-magic opt" style="display:inline-flex; align-items:center; padding:4px 8px; font-size:10px; cursor:pointer;" onclick="regenerateKosuEval(this)">🔄 Viết lại đánh giá</button>
+        </div>
+        <div id="kosu-eval-content"></div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="tpl-kosu-mom-row">
+  <tr>
+    <td class="mom-name"></td>
+    <td class="mom-prev"></td>
+    <td class="mom-cur" style="color:var(--tx);"></td> <td class="mom-diff" style="color:var(--warn);"></td>
+    <td class="mom-kpi" style="color:var(--kosu);"></td>
+  </tr>
+</template>
+  <template id="tpl-kosu-dashboard-layout">
+  <div class="report" id="rpt" style="max-width:960px;">
+    <div class="rh" style="border-bottom-color:var(--acc2);display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div class="rweek" style="color:var(--acc2);">DASHBOARD CHUYÊN SÂU</div>
+        <div class="rtitle" style="display:flex;align-items:center;gap:12px;">
+          Phân Tích Cơ Cấu Sản Phẩm & Nhân Sự Kosu
+          <select id="kosu-filter-select" onchange="applyKosuFilter(this.value)" style="padding:6px 12px; border-radius:8px; border:1px solid var(--acc2); background:var(--sur2); color:var(--acc2); font-family:'Inter', sans-serif; font-weight:700; font-size:13px; outline:none; cursor:pointer; box-shadow:0 0 10px rgba(56,224,176,0.1);">
+            <option value="All">🌟 Xem Tất Cả</option>
+            </select>
+        </div>
+      </div>
+      <button id="btn-copy-kosu" class="btn-copy" style="border-color:var(--acc2);color:var(--acc2);" onclick="doCopyKosuText()">⎘ Copy Report</button>
+    </div>
+
+    <div style="font-size:11px; color:var(--tx3); margin-bottom:20px; font-style:italic;">*Lưu ý: Khi chọn 1 nhân sự, AI sẽ tự động phân tích dữ liệu riêng của người đó. Bấm vào tiêu đề Cột (↕) để sắp xếp.</div>
+
+    <div class="pb" style="border-color:var(--acc);margin-bottom:20px;">
+      <div class="phdr" style="background:rgba(79,124,255,0.05);border-bottom-color:var(--acc);">
+        <div class="pdot" style="background:var(--acc)"></div>
+        <div class="pname" style="color:var(--acc)">📈 Xu Hướng Doanh Thu Theo Ngày</div>
+      </div>
+      <div id="daily-chart-container" style="padding:16px 18px;"></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:20px;">
+      <div class="top-box" style="background:var(--sur);padding:15px;border:1px solid var(--bdr);border-radius:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid var(--bdr);padding-bottom:10px;">
+          <div style="font-size:12px;font-weight:700;color:var(--acc2);">🏆 TOP 10 (THÁNG HIỆN TẠI)</div>
+          <div style="display:flex;gap:5px;">
+            <button style="font-size:9px;padding:3px 8px;border-radius:4px;border:1px solid var(--acc2);background:rgba(56,224,176,0.1);color:var(--acc2);cursor:pointer;font-weight:600;transition:.2s;" onclick="changeTopSort(this,'cur','rev')">Theo DT</button>
+            <button style="font-size:9px;padding:3px 8px;border-radius:4px;border:1px solid var(--tx3);background:transparent;color:var(--tx2);cursor:pointer;font-weight:600;transition:.2s;" onclick="changeTopSort(this,'cur','qty')">Theo SL</button>
+          </div>
+        </div>
+        <div id="top-list-cur" class="top-list" style="display:flex;flex-direction:
 </body>
 </html>
