@@ -2886,13 +2886,16 @@ async function applyKosuFilter(person) {
             
             const sysPrompt = `Bạn là Chuyên gia Phân tích Marketing. Hãy phân tích bảng số liệu dành RIÊNG cho nhân sự [${person}]:\n${data.personRawText}\n\nYÊU CẦU ĐÁNH GIÁ SÁT SAO CHO CÁ NHÂN NÀY:\n1. "eval_sp": 1-2 nhận xét điểm sáng/tối trong cơ cấu Sản phẩm của họ.\n2. "eval_hoan": 1-2 nhận xét thực trạng hoàn trả.\n3. "eval_kenh": 1-2 nhận xét hiệu quả Kênh chạy Ads.\n4. "eval_page": 1-2 nhận xét hiệu suất các Fanpage và LDP mà họ quản lý (ai tốt, ai đốt tiền).\n5. "ket_luan": Đề xuất hành động chiến lược để nhân sự này cải thiện KPI (2-3 gạch đầu dòng).\nTrả về JSON thuần: {"eval_sp":["..."],"eval_hoan":["..."],"eval_kenh":["..."],"eval_page":["..."],"ket_luan":["..."]}`;
             
-            const resAi = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ contents:[{parts:[{text: sysPrompt+extraPrompt}]}], generationConfig:{responseMimeType:"application/json",temperature:0.3} }) });
+            // SỬ DỤNG fetchWithRetry ĐỂ TỰ ĐỘNG CHỜ NẾU API BỊ QUÁ TẢI
+            const resAi = await fetchWithRetry(url, { 
+                method:'POST', 
+                headers:{'Content-Type':'application/json'}, 
+                body: JSON.stringify({ 
+                    contents:[{parts:[{text: sysPrompt+extraPrompt}]}], 
+                    generationConfig:{responseMimeType:"application/json",temperature:0.3} 
+                }) 
+            }, 3);
             
-            if (!resAi.ok) {
-                if (resAi.status === 429) throw new Error("Thao tác quá nhanh! Vui lòng chờ 1 phút để Google hồi phục băng thông.");
-                throw new Error(`Lỗi kết nối API (${resAi.status})`);
-            }
-
             const d = await resAi.json();
             let rawAi = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
             let fi = rawAi.indexOf('{'); let li = rawAi.lastIndexOf('}'); if(fi !== -1 && li !== -1) rawAi = rawAi.substring(fi, li+1);
@@ -2907,6 +2910,7 @@ async function applyKosuFilter(person) {
                 document.getElementById('ai-eval-page').innerHTML = renderAiList(parsedAi.eval_page);
                 document.getElementById('ai-eval-sp').innerHTML = renderAiList(parsedAi.eval_sp);
                 document.getElementById('ai-eval-ketluan').innerHTML = renderAiList(parsedAi.ket_luan);
+                document.getElementById('ai-eval-nhansu').innerHTML = renderAiList(parsedAi.eval_nhansu);
             }
         } catch(e) {
             if (window.currentViewPerson === person) {
