@@ -1437,16 +1437,38 @@ function renderTuan(d, gc, mc, gTot, gHCM, gHN, mTot, mHCM, mHN, period, from, t
   out.innerHTML = '';
   out.appendChild(report);
 }
+// Thêm 1 biến toàn cục để nhớ vị trí gốc của báo cáo
+let originalRptParent = null;
+
 function openFullscreen() {
   const rpt = document.getElementById('rpt');
-  if (!rpt) { alert('Chưa có báo cáo! Vui lòng tạo báo cáo trước.'); return; }
+  if (!rpt) { 
+    alert('Chưa có báo cáo! Vui lòng tạo báo cáo trước.'); 
+    return; 
+  }
+  
   const area = document.getElementById('fs-content-area');
-  area.innerHTML = rpt.outerHTML;
+  
+  // 1. Ghi nhớ vị trí cha ban đầu của báo cáo (chính là thẻ #out)
+  originalRptParent = rpt.parentNode;
+  
+  // 2. NHẤC NGUYÊN BẢN báo cáo (không dùng outerHTML nữa) chuyển sang Fullscreen
+  area.appendChild(rpt);
+  
+  // 3. Hiển thị màn hình Fullscreen
   document.getElementById('fs-report').classList.add('active');
   document.body.style.overflow = 'hidden';
 }
 
 function closeFullscreen() {
+  const rpt = document.getElementById('rpt');
+  
+  // 1. Trả nguyên bản báo cáo về lại vị trí cũ bên ngoài Fullscreen
+  if (rpt && originalRptParent) {
+    originalRptParent.appendChild(rpt);
+  }
+  
+  // 2. Ẩn màn hình Fullscreen
   document.getElementById('fs-report').classList.remove('active');
   document.body.style.overflow = '';
 }
