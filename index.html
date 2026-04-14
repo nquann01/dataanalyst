@@ -159,6 +159,15 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
     page-break-inside: avoid !important; 
     break-inside: avoid !important; 
 }
+/* CSS Xử lý phân quyền nút Xoá */
+.btn-del-hist:disabled {
+  border-color: var(--bdr) !important;
+  color: var(--tx3) !important;
+  background: transparent !important;
+  cursor: not-allowed;
+  opacity: 0.5;
+  filter: grayscale(1);
+}
 </style>
 </head>
 <!-- MÀN HÌNH NHẬP TOKEN -->
@@ -622,57 +631,63 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby2y8N1gRjZ6trrX5wUllu8rs463Z8qGV_E-JHyOfLIXPLZ5DrIDVJ9UuzyTnOR2nL8/exec';
 
 async function checkToken() {
-  const token = document.getElementById('token-input').value.trim();
-  const errEl = document.getElementById('auth-error');
-  const btn = document.querySelector('#auth-screen button');
+  const token = document.getElementById('token-input').value.trim();
+  const errEl = document.getElementById('auth-error');
+  const btn = document.querySelector('#auth-screen button');
 
-  if (!token) {
-    errEl.textContent = 'Vui lòng nhập mã truy cập!';
-    errEl.style.display = 'block';
-    return;
-  }
+  if (!token) {
+    errEl.textContent = 'Vui lòng nhập mã truy cập!';
+    errEl.style.display = 'block';
+    return;
+  }
 
-  btn.textContent = 'Đang kiểm tra...';
-  btn.disabled = true;
-  errEl.style.display = 'none';
+  btn.textContent = 'Đang kiểm tra...';
+  btn.disabled = true;
+  errEl.style.display = 'none';
 
-  try {
-    const res = await fetch(SCRIPT_URL, {
-      method: 'POST',
-      body: JSON.stringify({ token }),
-    });
-    const data = await res.json();
+  try {
+    const res = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+    const data = await res.json();
 
-    if (data.valid) {
-      sessionStorage.setItem('auth_token', token);
-      sessionStorage.setItem('auth_name', data.name);
-      
-      // Ghi log đăng nhập (chạy ngầm)
-      fetch(SCRIPT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'login', token: token })
-      }).catch(() => {});
-      
-      document.getElementById('auth-screen').style.display = 'none';
-      
-      // QUAN TRỌNG: Gọi lại initApp để khởi tạo dữ liệu sau khi ẩn form
-      initApp(); 
+    if (data.valid) {
+      sessionStorage.setItem('auth_token', token);
+      sessionStorage.setItem('auth_name', data.name);
+      
+      // === PHÂN QUYỀN MỚI ===
+      const ADMIN_TOKENS = ["zxc", "vi123"]; // Sếp điền các mã có quyền xoá vào đây
+      if (ADMIN_TOKENS.includes(token)) {
+        sessionStorage.setItem('user_role', 'admin');
+      } else {
+        sessionStorage.setItem('user_role', 'staff');
+      }
+      // =======================
 
-    } else {
-      errEl.textContent = data.message || 'Mã không hợp lệ!';
-      errEl.style.display = 'block';
-      btn.textContent = 'Xác nhận →';
-      btn.disabled = false;
-    }
-  } catch (error) {
-    // QUAN TRỌNG: Đã thêm Catch để bắt lỗi nếu API chết/CORS
-    console.error("Lỗi xác thực:", error);
-    errEl.textContent = 'Lỗi kết nối máy chủ! Vui lòng kiểm tra lại F12 (Console).';
-    errEl.style.display = 'block';
-    btn.textContent = 'Xác nhận →';
-    btn.disabled = false;
-  }
+      // Ghi log đăng nhập (chạy ngầm)
+      fetch(SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'login', token: token })
+      }).catch(() => {});
+      
+      document.getElementById('auth-screen').style.display = 'none';
+      initApp(); 
+
+    } else {
+      errEl.textContent = data.message || 'Mã không hợp lệ!';
+      errEl.style.display = 'block';
+      btn.textContent = 'Xác nhận →';
+      btn.disabled = false;
+    }
+  } catch (error) {
+    console.error("Lỗi xác thực:", error);
+    errEl.textContent = 'Lỗi kết nối máy chủ! Vui lòng kiểm tra lại F12 (Console).';
+    errEl.style.display = 'block';
+    btn.textContent = 'Xác nhận →';
+    btn.disabled = false;
+  }
 }
 
 // Cho phép nhấn Enter
@@ -809,34 +824,51 @@ async function loadHistList() {
 }
 
 function viewHist() {
-  const reportId = document.getElementById('hist-sel').value; // Lấy ID báo cáo sếp vừa chọn
-  const delBtn = document.getElementById('del-btn'); 
-  const magicBtn = document.getElementById('magic-btn'); 
-  const forecastBtn = document.getElementById('forecast-btn');
-  const chatBox = document.getElementById('ai-chat-box');
-  
-  resetChat(); 
-  
-  // Nếu sếp chọn ô "-- Xem lịch sử --" (không có giá trị)
-  if(!reportId) {
-    document.getElementById('out').innerHTML = `<div class="s-empty"><div class="ico">🗂️</div><p>Chọn một báo cáo từ lịch sử để xem</p></div>`;
-    delBtn.style.display = 'none'; magicBtn.style.display = 'none'; forecastBtn.style.display = 'none'; if(chatBox) chatBox.style.display = 'none'; 
-    return;
-  }
+  const reportId = document.getElementById('hist-sel').value; // Lấy ID báo cáo sếp vừa chọn
+  const delBtn = document.getElementById('del-btn'); 
+  const delAllBtn = document.getElementById('del-all-btn'); // Nút xoá hết
+  const magicBtn = document.getElementById('magic-btn'); 
+  const forecastBtn = document.getElementById('forecast-btn');
+  const chatBox = document.getElementById('ai-chat-box');
+  const role = sessionStorage.getItem('user_role'); // Lấy quyền user
+  
+  resetChat(); 
+  
+  // Nếu sếp chọn ô "-- Xem lịch sử --" (không có giá trị)
+  if(!reportId) {
+    document.getElementById('out').innerHTML = `<div class="s-empty"><div class="ico">🗂️</div><p>Chọn một báo cáo từ lịch sử để xem</p></div>`;
+    delBtn.style.display = 'none'; 
+    delAllBtn.style.display = 'none';
+    magicBtn.style.display = 'none'; 
+    forecastBtn.style.display = 'none'; 
+    if(chatBox) chatBox.style.display = 'none'; 
+    return;
+  }
 
-  // TÌM BÁO CÁO TRONG CACHE DỰA VÀO ID
-  const rpt = cloudReportsCache.find(item => item.id === reportId);
-  
-  if(rpt) {
-    // Bơm mã HTML của báo cáo vào màn hình
-    document.getElementById('out').innerHTML = rpt.html;
-    
-    // Bật các nút chức năng lên
-    delBtn.style.display = 'block'; 
-    magicBtn.style.display = 'inline-block'; 
-    forecastBtn.style.display = 'inline-block'; 
-    if(chatBox) chatBox.style.display = 'flex';
-  }
+  // TÌM BÁO CÁO TRONG CACHE DỰA VÀO ID
+  const rpt = cloudReportsCache.find(item => item.id === reportId);
+  
+  if(rpt) {
+    // Bơm mã HTML của báo cáo vào màn hình
+    document.getElementById('out').innerHTML = rpt.html;
+    
+    // Bật các nút chức năng lên
+    magicBtn.style.display = 'inline-block'; 
+    forecastBtn.style.display = 'inline-block'; 
+    if(chatBox) chatBox.style.display = 'flex';
+
+    // === XỬ LÝ NÚT XOÁ THEO QUYỀN ===
+    delBtn.style.display = 'block';
+    if (role === 'admin') {
+        delBtn.disabled = false;
+        delBtn.title = "Xoá báo cáo đang xem";
+        delAllBtn.style.display = 'inline-block'; // Admin thấy nút xoá sạch
+    } else {
+        delBtn.disabled = true;
+        delBtn.title = "Bạn chỉ có quyền xem, không thể xoá";
+        delAllBtn.style.display = 'none'; // Giấu nút xoá sạch đi
+    }
+  }
 }
 
 async function saveHist(type, periodStr, htmlStr) {
@@ -874,33 +906,46 @@ async function saveHist(type, periodStr, htmlStr) {
 }
 
 async function deleteHist() {
-    const reportId = document.getElementById('hist-sel').value;
-    if(!reportId) return;
-    
-    // Tìm tên báo cáo trong cache để hiện thông báo xác nhận cho đẹp
-    const rpt = cloudReportsCache.find(item => item.id === reportId);
-    const rptName = rpt ? `${rpt.type} ${rpt.period}` : "này";
+    const role = sessionStorage.getItem('user_role');
+    if (role !== 'admin') return; // Nhân viên bấm tàng hình cũng ko chạy
 
-    if(!confirm(`Bạn có chắc muốn xoá báo cáo "${rptName}" trên mây không?`)) return;
-    
-    const delBtn = document.getElementById('del-btn');
-    const ogText = delBtn.textContent;
-    delBtn.textContent = "⏳...";
-    delBtn.disabled = true;
+    const reportId = document.getElementById('hist-sel').value;
+    if(!reportId) return;
+    const token = sessionStorage.getItem('auth_token'); // Lấy token để gửi
+    
+    const rpt = cloudReportsCache.find(item => item.id === reportId);
+    const rptName = rpt ? `${rpt.type} ${rpt.period}` : "này";
 
-    try {
-        await fetch(SCRIPT_URL, {
-            method: 'POST',
-            body: JSON.stringify({ action: 'deleteReport', reportId: reportId })
+    if(!confirm(`Bạn có chắc muốn xoá báo cáo "${rptName}" trên mây không?`)) return;
+    
+    const delBtn = document.getElementById('del-btn');
+    const ogText = delBtn.textContent;
+    delBtn.textContent = "⏳...";
+    delBtn.disabled = true;
+
+    try {
+        const res = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify({ 
+                action: 'deleteReport', 
+                reportId: reportId,
+                token: token // Gửi token lên backend để chốt chặn
+            })
         });
-        await loadHistList(); // Tải lại danh sách mới nhất
-        viewHist(); // Reset lại màn hình
-    } catch (e) {
-        alert("Lỗi khi xóa dữ liệu trên Cloud!");
-    } finally {
-        delBtn.textContent = "🗑️";
-        delBtn.disabled = false;
-    }
+        const result = await res.json();
+        
+        if(!result.success) {
+            alert(result.message); // Hiện thông báo nếu Backend từ chối
+        } else {
+            await loadHistList(); 
+            viewHist(); 
+        }
+    } catch (e) {
+        alert("Lỗi khi xóa dữ liệu trên Cloud!");
+    } finally {
+        delBtn.textContent = "🗑️";
+        delBtn.disabled = false;
+    }
 }
 
 // --- XỬ LÝ FILE (ẢNH & EXCEL) DUAL-SUPPORT ---
