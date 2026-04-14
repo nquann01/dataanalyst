@@ -148,6 +148,17 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
 .khm-item strong{font-family:'Roboto Mono', monospace;font-size:12px;}
 .khm-detail{font-size:10px;color:var(--tx3);margin-left:8px;font-family:'Roboto Mono', monospace;}
 ::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:3px;}
+/* ... các CSS cũ của sếp ở trên ... */
+.khm-detail { font-size: 10px; color: var(--tx3); margin-left: 8px; font-family: 'Roboto Mono', monospace; }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bdr); border-radius: 3px; }
+
+/* 🚀 ĐOẠN CSS MỚI DÁN VÀO ĐÂY ĐỂ CHỐNG CẮT LÀM ĐÔI LÚC XUẤT PDF */
+.pb, .iblock, .stbl tr, .nblk, .analysis-box { 
+    page-break-inside: avoid !important; 
+    break-inside: avoid !important; 
+}
 </style>
 </head>
 <!-- MÀN HÌNH NHẬP TOKEN -->
@@ -166,6 +177,31 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
   </div>
 </div>
 <body onload="initApp()">
+<div id="ai-setting-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:10000; align-items:center; justify-content:center;">
+  <div style="background:var(--sur); border:1px solid var(--bdr); border-radius:12px; width:400px; padding:25px;">
+    <h3 style="color:var(--warn); margin-bottom:15px; font-size:16px;">⚙️ Cài đặt Khẩu vị AI</h3>
+    
+    <label style="font-size:11px; color:var(--tx2); font-weight:bold;">1. Xưng hô & Văn phong</label>
+    <select id="ai-tone" style="width:100%; background:var(--sur2); border:1px solid var(--bdr); color:var(--tx); padding:8px; border-radius:6px; margin:5px 0 15px;">
+      <option value="default">🤖 Trợ lý AI mặc định (Không can thiệp)</option>
+      <option value="Chuyên nghiệp, khách quan, súc tích.">Chuyên nghiệp, khách quan</option>
+      <option value="Xưng 'em' gọi 'sếp', phân tích thẳng thắn, soi lỗi cực gắt.">Gắt gao, soi lỗi (Xưng Em/Sếp)</option>
+      <option value="Lạc quan, khen ngợi những điểm làm tốt, động viên team.">Động viên, tích cực</option>
+    </select>
+
+    <label style="font-size:11px; color:var(--tx2); font-weight:bold;">2. Góc nhìn tập trung</label>
+    <select id="ai-focus" style="width:100%; background:var(--sur2); border:1px solid var(--bdr); color:var(--tx); padding:8px; border-radius:6px; margin:5px 0 15px;">
+      <option value="default">🤖 Mặc định (Phân tích tổng hợp)</option>
+      <option value="Đặc biệt soi kỹ dòng tiền, CPQC và tỷ suất lợi nhuận (ROAS).">Dòng tiền & Chi phí (ROAS, CPQC)</option>
+      <option value="Đặc biệt soi kỹ tỷ lệ chốt đơn, phễu data và hiệu suất sale.">Phễu chuyển đổi & Chốt đơn</option>
+    </select>
+
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+      <button onclick="document.getElementById('ai-setting-modal').style.display='none'" style="padding:8px 15px; border-radius:6px; border:1px solid var(--bdr); background:transparent; color:var(--tx); cursor:pointer;">Đóng</button>
+      <button onclick="saveAiSettings()" style="padding:8px 15px; border-radius:6px; border:none; background:var(--warn); color:#000; font-weight:bold; cursor:pointer;">💾 Lưu cài đặt</button>
+    </div>
+  </div>
+</div>
 <header>
   <div class="logo">⚡</div>
   <div><h1>⚡Data Analysis</h1><p>Phân tích dữ liệu, Hỏi đáp đối chiếu & Dự báo tương lai - Developed by QuanNA</p></div>
@@ -550,6 +586,7 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
         <button id="del-all-btn" class="btn-del-hist" onclick="deleteAllHist()" title="Xoá toàn bộ lịch sử">🧹 Xoá hết</button>
       </div>
       <div style="display:flex; align-items:center; gap:8px;">
+        <button class="btn-copy" onclick="openAiSettings()" style="border-color:var(--warn); color:var(--warn);">⚙️ Cài đặt AI</button>
         <button id="magic-btn" class="btn-magic opt" onclick="getAiInsights()" title="Đề xuất chiến lược tối ưu">✨ Đề xuất</button>
         <button id="forecast-btn" class="btn-magic fc" onclick="forecastFuture()" title="Dự báo doanh thu chu kỳ tới">🔮 Dự báo</button>
         <button class="btn-copy" id="fs-btn" onclick="openFullscreen()" title="Xem báo cáo toàn màn hình">⛶ Toàn màn hình</button>
@@ -1854,8 +1891,7 @@ async function gen() {
   showLoad();
 
   const customNote = document.getElementById('ai-custom-note') ? document.getElementById('ai-custom-note').value.trim() : '';
-  const extraPrompt = customNote ? `\n\n=== LƯU Ý ĐẶC BIỆT TỪ NGƯỜI DÙNG ===\n${customNote}\n(Hãy BẮT BUỘC tuân thủ lưu ý này khi phân tích dữ liệu, viết phần Đánh giá và Kết luận).` : '';
-
+  const extraPrompt = (customNote ? `\n\n=== LƯU Ý ĐẶC BIỆT TỪ NGƯỜI DÙNG ===\n${customNote}` : '') + getAiPersonaPrompt();
   try {
     if (ptype === 'Main') {
       if (type === 'Tuần') {
@@ -2668,16 +2704,123 @@ async function doCopy() {
 
 async function exportImage() {
   const rptEl = document.getElementById('rpt'); if (!rptEl) return;
-  const btn = document.getElementById('img-btn'); const ogText = btn.innerHTML; btn.innerHTML = '⏳ Đang xử lý...'; btn.disabled = true;
-  try { const canvas = await html2canvas(rptEl, { backgroundColor: '#0f1117', scale: 2 }); const link = document.createElement('a'); link.download = `Bao_Cao_${new Date().toISOString().slice(0,10)}.png`; link.href = canvas.toDataURL('image/png'); link.click(); btn.innerHTML = '✓ Đã tải Ảnh'; btn.classList.add('ok'); setTimeout(() => { btn.innerHTML = ogText; btn.classList.remove('ok'); }, 2000); } 
-  catch(e) { alert('Lỗi: ' + e); btn.innerHTML = ogText; } finally { btn.disabled = false; }
+  const btn = document.getElementById('img-btn'); 
+  const ogText = btn.innerHTML; 
+  btn.innerHTML = '⏳ Đang ghép ảnh...'; 
+  btn.disabled = true;
+  
+  try { 
+    // Ép trình duyệt nhả full chiều cao để không bị cắt xén cụt lủn
+    const ogHeight = rptEl.style.height;
+    const ogOverflow = rptEl.style.overflow;
+    rptEl.style.height = 'auto';
+    rptEl.style.overflow = 'visible';
+
+    const canvas = await html2canvas(rptEl, { 
+      backgroundColor: '#0f1117', 
+      scale: 2, // Độ phân giải x2 cho nét
+      useCORS: true,
+      windowWidth: rptEl.scrollWidth,
+      windowHeight: rptEl.scrollHeight,
+      scrollY: -window.scrollY // Trị triệt để bệnh khoảng đen do kéo chuột
+    }); 
+    
+    // Trả lại form cũ
+    rptEl.style.height = ogHeight;
+    rptEl.style.overflow = ogOverflow;
+
+    const link = document.createElement('a'); 
+    link.download = `Bao_Cao_${new Date().toISOString().slice(0,10)}.png`; 
+    link.href = canvas.toDataURL('image/png'); 
+    link.click(); 
+    
+    btn.innerHTML = '✓ Đã tải Ảnh'; btn.classList.add('ok'); 
+    setTimeout(() => { btn.innerHTML = ogText; btn.classList.remove('ok'); }, 2000); 
+  } 
+  catch(e) { alert('Lỗi tải ảnh: ' + e); btn.innerHTML = ogText; } 
+  finally { btn.disabled = false; }
 }
 
 function exportPDF() {
   const rptEl = document.getElementById('rpt'); if (!rptEl) return;
-  const btn = document.getElementById('pdf-btn'); const ogText = btn.innerHTML; btn.innerHTML = '⏳ Đang xử lý...'; btn.disabled = true;
-  const opt = { margin: 10, filename: `Bao_Cao_${new Date().toISOString().slice(0,10)}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, backgroundColor: '#0f1117' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
-  html2pdf().set(opt).from(rptEl).save().then(() => { btn.innerHTML = '✓ Đã tải PDF'; btn.classList.add('ok'); setTimeout(() => { btn.innerHTML = ogText; btn.classList.remove('ok'); }, 2000); btn.disabled = false; }).catch(err => { alert('Lỗi: ' + err); btn.innerHTML = ogText; btn.disabled = false; });
+  const btn = document.getElementById('pdf-btn'); 
+  const ogText = btn.innerHTML; 
+  btn.innerHTML = '⏳ Đang dàn trang...'; 
+  btn.disabled = true;
+  
+  // 1. Lưu lại trạng thái của khối chứa báo cáo gốc
+  const ogHeight = rptEl.style.height;
+  const ogOverflow = rptEl.style.overflow;
+  rptEl.style.height = 'auto';
+  rptEl.style.overflow = 'visible';
+
+  // 2. ÉP BUỘC CÁC KHỐI BÊN TRONG KHÔNG ĐƯỢC CẮT NGANG VÀ BỎ OVERFLOW: HIDDEN
+  // Chọn tất cả các khối lớn và các dòng trong bảng (tr)
+  const blocksToProtect = rptEl.querySelectorAll('.pb, .iblock, .analysis-box, .stbl tr, .nblk');
+  const originalStyles = [];
+  
+  blocksToProtect.forEach(el => {
+    // Ghi nhớ lại style cũ để lát nữa trả về
+    originalStyles.push({
+      overflow: el.style.overflow,
+      pageBreakInside: el.style.pageBreakInside,
+      breakInside: el.style.breakInside
+    });
+    
+    // Ghi đè style tạm thời để xuất PDF
+    el.style.overflow = 'visible'; 
+    el.style.pageBreakInside = 'avoid';
+    el.style.breakInside = 'avoid';
+  });
+
+  const opt = { 
+    margin: [15, 10, 15, 10], // Lề: Trên, Phải, Dưới, Trái (mm)
+    filename: `Bao_Cao_${new Date().toISOString().slice(0,10)}.pdf`, 
+    image: { type: 'jpeg', quality: 1 }, 
+    html2canvas: { 
+        scale: 2, 
+        backgroundColor: '#0f1117', 
+        useCORS: true, 
+        scrollY: 0,
+        windowWidth: rptEl.scrollWidth
+    }, 
+    jsPDF: { 
+        unit: 'mm', 
+        format: 'a3', // Giữ A3 cho rộng rãi
+        orientation: 'portrait' 
+    },
+    // Chế độ né cắt ngang siêu mạnh của html2pdf
+    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] } 
+  };
+  
+  html2pdf().set(opt).from(rptEl).save()
+    .then(() => { 
+      // 3. XUẤT XONG THÌ TRẢ LẠI GIAO DIỆN NHƯ CŨ
+      rptEl.style.height = ogHeight;
+      rptEl.style.overflow = ogOverflow;
+      
+      blocksToProtect.forEach((el, index) => {
+        el.style.overflow = originalStyles[index].overflow;
+        el.style.pageBreakInside = originalStyles[index].pageBreakInside;
+        el.style.breakInside = originalStyles[index].breakInside;
+      });
+
+      btn.innerHTML = '✓ Đã tải PDF'; btn.classList.add('ok'); 
+      setTimeout(() => { btn.innerHTML = ogText; btn.classList.remove('ok'); }, 2000); 
+      btn.disabled = false; 
+    })
+    .catch(err => { 
+      // Gặp lỗi cũng phải trả lại giao diện như cũ
+      rptEl.style.height = ogHeight;
+      rptEl.style.overflow = ogOverflow;
+      blocksToProtect.forEach((el, index) => {
+        el.style.overflow = originalStyles[index].overflow;
+      });
+
+      alert('Lỗi tải PDF: ' + err); 
+      btn.innerHTML = ogText; 
+      btn.disabled = false; 
+    });
 }
 
 let chatContext = [];
@@ -2882,7 +3025,7 @@ async function applyKosuFilter(person) {
         try {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${localStorage.getItem('gemini_api_key') || document.getElementById('api-key-input').value.trim()}`;
             const customNote = document.getElementById('ai-custom-note') ? document.getElementById('ai-custom-note').value.trim() : '';
-            const extraPrompt = customNote ? `\n\n=== LƯU Ý ĐẶC BIỆT TỪ NGƯỜI DÙNG ===\n${customNote}` : '';
+            const extraPrompt = (customNote ? `\n\n=== LƯU Ý ĐẶC BIỆT TỪ NGƯỜI DÙNG ===\n${customNote}` : '') + getAiPersonaPrompt();
             
             const sysPrompt = `Bạn là Chuyên gia Phân tích Marketing. Hãy phân tích bảng số liệu dành RIÊNG cho nhân sự [${person}]:\n${data.personRawText}\n\nYÊU CẦU ĐÁNH GIÁ SÁT SAO CHO CÁ NHÂN NÀY:\n1. "eval_sp": 1-2 nhận xét điểm sáng/tối trong cơ cấu Sản phẩm của họ.\n2. "eval_hoan": 1-2 nhận xét thực trạng hoàn trả.\n3. "eval_kenh": 1-2 nhận xét hiệu quả Kênh chạy Ads.\n4. "eval_page": 1-2 nhận xét hiệu suất các Fanpage và LDP mà họ quản lý (ai tốt, ai đốt tiền).\n5. "ket_luan": Đề xuất hành động chiến lược để nhân sự này cải thiện KPI (2-3 gạch đầu dòng).\nTrả về JSON thuần: {"eval_sp":["..."],"eval_hoan":["..."],"eval_kenh":["..."],"eval_page":["..."],"ket_luan":["..."]}`;
             
@@ -2925,7 +3068,42 @@ async function applyKosuFilter(person) {
     }
 }
 
+function openAiSettings() {
+  document.getElementById('ai-tone').value = localStorage.getItem('ai_tone') || "default";
+  document.getElementById('ai-focus').value = localStorage.getItem('ai_focus') || "default";
+  document.getElementById('ai-setting-modal').style.display = 'flex';
+}
 
+function saveAiSettings() {
+  localStorage.setItem('ai_tone', document.getElementById('ai-tone').value);
+  localStorage.setItem('ai_focus', document.getElementById('ai-focus').value);
+  document.getElementById('ai-setting-modal').style.display = 'none';
+  
+  // Kiểm tra xem sếp lưu chế độ gì để báo ra màn hình cho ngầu
+  if (document.getElementById('ai-tone').value === "default" && document.getElementById('ai-focus').value === "default") {
+    alert('Đã khôi phục AI về chế độ Mặc định nguyên thủy!');
+  } else {
+    alert('Đã lưu khẩu vị AI! Các báo cáo tạo ra từ bây giờ sẽ theo phong cách của sếp.');
+  }
+}
+
+// Hàm tiêm prompt rất thông minh: Chỉ chèn khi sếp chọn khác "default"
+function getAiPersonaPrompt() {
+  const tone = localStorage.getItem('ai_tone') || "default";
+  const focus = localStorage.getItem('ai_focus') || "default";
+
+  // Nếu cả 2 là mặc định -> Trả về chuỗi rỗng (Không ép AI phải đổi giọng)
+  if (tone === "default" && focus === "default") {
+    return ""; 
+  }
+
+  // Nếu có can thiệp thì mới ghép chuỗi
+  let prompt = `\n\n[CHỈ THỊ ĐẶC BIỆT TỪ SẾP VỀ VĂN PHONG VÀ GÓC NHÌN]:\n`;
+  if (tone !== "default") prompt += `- Giọng điệu của bạn: ${tone}\n`;
+  if (focus !== "default") prompt += `- Trọng tâm bạn cần chú ý: ${focus}\n`;
+  
+  return prompt;
+}
 </script>
   <template id="tpl-mc">
   <div class="mc">
