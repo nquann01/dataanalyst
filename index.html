@@ -586,7 +586,6 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby2y8N1gRjZ6trrX5wUllu8rs463Z8qGV_E-JHyOfLIXPLZ5DrIDVJ9UuzyTnOR2nL8/exec';
 
 async function checkToken() {
-  
   const token = document.getElementById('token-input').value.trim();
   const errEl = document.getElementById('auth-error');
   const btn = document.querySelector('#auth-screen button');
@@ -612,6 +611,7 @@ async function checkToken() {
       sessionStorage.setItem('auth_token', token);
       sessionStorage.setItem('auth_name', data.name);
       
+      // Ghi log đăng nhập (chạy ngầm)
       fetch(SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -619,12 +619,24 @@ async function checkToken() {
       }).catch(() => {});
       
       document.getElementById('auth-screen').style.display = 'none';
+      
+      // QUAN TRỌNG: Gọi lại initApp để khởi tạo dữ liệu sau khi ẩn form
+      initApp(); 
+
     } else {
       errEl.textContent = data.message || 'Mã không hợp lệ!';
       errEl.style.display = 'block';
       btn.textContent = 'Xác nhận →';
       btn.disabled = false;
     }
+  } catch (error) {
+    // QUAN TRỌNG: Đã thêm Catch để bắt lỗi nếu API chết/CORS
+    console.error("Lỗi xác thực:", error);
+    errEl.textContent = 'Lỗi kết nối máy chủ! Vui lòng kiểm tra lại F12 (Console).';
+    errEl.style.display = 'block';
+    btn.textContent = 'Xác nhận →';
+    btn.disabled = false;
+  }
 }
 
 // Cho phép nhấn Enter
