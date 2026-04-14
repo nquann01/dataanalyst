@@ -586,13 +586,12 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
         <button id="del-all-btn" class="btn-del-hist" onclick="deleteAllHist()" title="Xoá toàn bộ lịch sử">🧹 Xoá hết</button>
       </div>
       <div style="display:flex; align-items:center; gap:8px;">
-        <button class="btn-copy" onclick="openAiSettings()" style="border-color:var(--warn); color:var(--warn);">⚙️ Cài đặt AI</button>
         <button id="magic-btn" class="btn-magic opt" onclick="getAiInsights()" title="Đề xuất chiến lược tối ưu">✨ Đề xuất</button>
         <button id="forecast-btn" class="btn-magic fc" onclick="forecastFuture()" title="Dự báo doanh thu chu kỳ tới">🔮 Dự báo</button>
-        <button class="btn-copy" id="fs-btn" onclick="openFullscreen()" title="Xem báo cáo toàn màn hình">⛶ Toàn màn hình</button>
-        <button class="btn-copy" id="img-btn" onclick="exportImage()" title="Lưu báo cáo thành file Ảnh (PNG)">📸 Tải Ảnh</button>
         <button class="btn-copy" id="pdf-btn" onclick="exportPDF()" title="Lưu báo cáo thành file PDF">📄 Tải PDF</button>
-        <button class="btn-copy" id="cbtn" onclick="doCopy()">⎘ Sao chép Báo cáo</button>
+        <button class="btn-copy" id="cbtn" onclick="doCopy()">⎘ Sao chép</button>
+        <button class="btn-copy" id="fs-btn" onclick="openFullscreen()" title="Xem báo cáo toàn màn hình">⛶ Full screen</button>
+        <button class="btn-copy" onclick="openAiSettings()" style="border-color:var(--warn); color:var(--warn);">⚙️ Cài đặt AI</button>
       </div>
     </div>
     
@@ -3530,7 +3529,6 @@ function getAiPersonaPrompt() {
   <div class="fs-topbar">
     <span style="font-size:11px;font-weight:700;color:var(--tx2)">⚡ Toàn Màn Hình</span>
     <div style="display:flex;gap:8px">
-      <button class="btn-copy" onclick="exportImage()">📸 Tải Ảnh</button>
       <button class="btn-copy" onclick="exportPDF()">📄 Tải PDF</button>
       <button class="btn-copy" onclick="doCopy()">⎘ Sao chép</button>
       <button class="btn-copy" onclick="closeFullscreen()"
