@@ -704,6 +704,34 @@ function initApp() {
   if (!sessionStorage.getItem('auth_token')) {
     return; // Chờ user nhập token
   }
+  
+  // === GIỚI HẠN TÍNH NĂNG THEO QUYỀN (LÀM MỜ VÀ KHÓA) ===
+  const role = sessionStorage.getItem('user_role');
+  if (role !== 'admin') {
+    // 1. Ép chọn mặc định vào Giày Kosu và Dashboard
+    document.getElementById('p-kosu').checked = true;
+    document.getElementById('db').checked = true;
+    
+    // 2. Gom các nút cần khóa lại
+    const restrictedTabs = [
+      document.querySelector('label[for="p-main"]'), // Tab Gunze & Mỹ phẩm
+      document.querySelector('label[for="tw"]'),     // Tab Báo cáo Tuần
+      document.querySelector('label[for="tm"]')      // Tab Báo cáo Tháng
+    ];
+
+    // 3. Làm mờ và khóa click từng nút
+    restrictedTabs.forEach(tab => {
+      if (tab) {
+        tab.style.opacity = '0.3';
+        tab.style.filter = 'grayscale(1)';
+        tab.style.cursor = 'not-allowed';
+        tab.style.pointerEvents = 'none'; // Chốt chặn: Khóa hoàn toàn khả năng click
+        tab.title = 'Bạn không được cấp quyền dùng tính năng này';
+      }
+    });
+  }
+  // =======================================================
+
   loadHistList();
   const savedKey = localStorage.getItem('gemini_api_key');
   const keyInput = document.getElementById('api-key-input');
@@ -2000,11 +2028,24 @@ function renderThang(data, period, from, to) {
 }
 
 // --- HÀM GỌI AI CHÍNH ĐỂ LẬP BÁO CÁO (Nhiệt độ = 0) ---
+// --- HÀM GỌI AI CHÍNH ĐỂ LẬP BÁO CÁO (Nhiệt độ = 0) ---
+// --- HÀM GỌI AI CHÍNH ĐỂ LẬP BÁO CÁO (Nhiệt độ = 0) ---
 async function gen() {
   const ptype = document.querySelector('input[name="ptype"]:checked').value;
   const type = document.querySelector('input[name="rtype"]:checked').value;
+  const role = sessionStorage.getItem('user_role');
+
+  // === CHỐT CHẶN F12 ===
+  if (role !== 'admin' && (ptype !== 'Kosu' || type !== 'Dashboard')) {
+      alert("Hành động bị từ chối: Bạn chỉ được cấp quyền sử dụng tính năng Dashboard Kosu!");
+      return;
+  }
+  // =====================
+
   const url = getApiUrl();
-  document.getElementById('hist-sel').value = ""; resetChat(); viewHist(); 
+  document.getElementById('hist-sel').value = ""; 
+  resetChat(); 
+  viewHist(); 
   document.getElementById('gbtn').disabled = true; 
   document.getElementById('magic-btn').style.display = 'none';
   document.getElementById('forecast-btn').style.display = 'none';
@@ -2012,7 +2053,9 @@ async function gen() {
 
   const customNote = document.getElementById('ai-custom-note') ? document.getElementById('ai-custom-note').value.trim() : '';
   const extraPrompt = (customNote ? `\n\n=== LƯU Ý ĐẶC BIỆT TỪ NGƯỜI DÙNG ===\n${customNote}` : '') + getAiPersonaPrompt();
+  
   try {
+// ... (PHẦN BÊN DƯỚI TỪ IF (PTYPE === 'MAIN') GIỮ NGUYÊN) ...
     if (ptype === 'Main') {
       if (type === 'Tuần') {
         const week = document.getElementById('week').value.trim(); const from = document.getElementById('dfrom').value.trim(); const to = document.getElementById('dto').value.trim();
