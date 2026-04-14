@@ -774,59 +774,134 @@ function updateUI() {
 }
 
 const STORAGE_KEY = 'ai_report_history';
-function loadHistList() {
-  const hist = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-  const sel = document.getElementById('hist-sel'); const delAllBtn = document.getElementById('del-all-btn');
-  sel.innerHTML = '<option value="">-- Xem lịch sử báo cáo --</option>';
-  const keys = Object.keys(hist).sort().reverse();
-  keys.forEach(k => { sel.innerHTML += `<option value="${k}">${k}</option>`; });
-  delAllBtn.style.display = keys.length > 0 ? 'block' : 'none';
+async function loadHistList() {
+  const token = sessionStorage.getItem('auth_token') || '';
+  const sel = document.getElementById('hist-sel');
+  const delAllBtn = document.getElementById('del-all-btn');
+  
+  // Hiện thông báo đang tải
+  sel.innerHTML = '<option value="">-- Đang tải từ Cloud... --</option>';
+
+  try {
+    // Gọi lên Google Sheets xin dữ liệu
+    const res = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'fetchHistory', token: token })
+    });
+    
+    // NHÉT TOÀN BỘ DỮ LIỆU VÀO CACHE Ở ĐÂY
+    cloudReportsCache = await res.json(); 
+    
+    // Đổ danh sách vào menu xổ xuống (Select)
+    sel.innerHTML = '<option value="">-- Xem lịch sử báo cáo --</option>';
+    cloudReportsCache.forEach(rpt => {
+      // Dùng rpt.id làm value, hiển thị thời gian và loại báo cáo
+      const label = `[${rpt.time}] ${rpt.type} ${rpt.period}`;
+      sel.innerHTML += `<option value="${rpt.id}">${label}</option>`;
+    });
+    
+    // Ẩn nút xoá hết đi cho an toàn
+    delAllBtn.style.display = 'none'; 
+  } catch (e) {
+    sel.innerHTML = '<option value="">⚠️ Lỗi tải dữ liệu Cloud</option>';
+    console.error("Lỗi tải lịch sử:", e);
+  }
 }
 
 function viewHist() {
-  const val = document.getElementById('hist-sel').value;
+  const reportId = document.getElementById('hist-sel').value; // Lấy ID báo cáo sếp vừa chọn
   const delBtn = document.getElementById('del-btn'); 
   const magicBtn = document.getElementById('magic-btn'); 
   const forecastBtn = document.getElementById('forecast-btn');
   const chatBox = document.getElementById('ai-chat-box');
+  
   resetChat(); 
-  if(!val) {
+  
+  // Nếu sếp chọn ô "-- Xem lịch sử --" (không có giá trị)
+  if(!reportId) {
     document.getElementById('out').innerHTML = `<div class="s-empty"><div class="ico">🗂️</div><p>Chọn một báo cáo từ lịch sử để xem</p></div>`;
-    delBtn.style.display = 'none'; magicBtn.style.display = 'none'; forecastBtn.style.display = 'none'; if(chatBox) chatBox.style.display = 'none'; return;
+    delBtn.style.display = 'none'; magicBtn.style.display = 'none'; forecastBtn.style.display = 'none'; if(chatBox) chatBox.style.display = 'none'; 
+    return;
   }
-  const hist = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-  if(hist[val]) {
-    document.getElementById('out').innerHTML = hist[val];
-    delBtn.style.display = 'block'; magicBtn.style.display = 'inline-block'; forecastBtn.style.display = 'inline-block'; if(chatBox) chatBox.style.display = 'flex';
+
+  // TÌM BÁO CÁO TRONG CACHE DỰA VÀO ID
+  const rpt = cloudReportsCache.find(item => item.id === reportId);
+  
+  if(rpt) {
+    // Bơm mã HTML của báo cáo vào màn hình
+    document.getElementById('out').innerHTML = rpt.html;
+    
+    // Bật các nút chức năng lên
+    delBtn.style.display = 'block'; 
+    magicBtn.style.display = 'inline-block'; 
+    forecastBtn.style.display = 'inline-block'; 
+    if(chatBox) chatBox.style.display = 'flex';
   }
 }
 
 async function saveHist(type, periodStr, htmlStr) {
-  const token = sessionStorage.getItem('auth_token') || '';
-  
-  try {
-    await fetch(SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }, // ← thêm dòng này
-      body: JSON.stringify({ action: 'log', token: token, reportType: type })
-    });
-  } catch (e) {
-    console.warn('Ghi log thất bại:', e.message); // ← bắt lỗi để debug
-  }
-  const hist = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-  const dateStr = new Date().toLocaleString('vi-VN', {hour: '2-digit', minute:'2-digit', day:'2-digit', month:'2-digit'});
-  const keyName = periodStr ? `${type} ${periodStr}` : `Báo cáo ${type} (${dateStr})`;
-  hist[keyName] = htmlStr; localStorage.setItem(STORAGE_KEY, JSON.stringify(hist));
-  loadHistList(); document.getElementById('hist-sel').value = keyName; viewHist(); 
+    const token = sessionStorage.getItem('auth_token') || '';
+    const userName = sessionStorage.getItem('auth_name') || 'Ẩn danh';
+    
+    // Hiển thị trạng thái đang lưu cho sếp yên tâm
+    const gbtn = document.getElementById('gbtn');
+    const ogText = gbtn.textContent;
+    gbtn.textContent = "⏳ Đang lưu lên Cloud...";
+
+    try {
+        const res = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'saveReport',
+                token: token,
+                userName: userName,
+                reportType: type,
+                period: periodStr || '—',
+                html: htmlStr
+            })
+        });
+        const data = await res.json();
+        if(data.success) {
+            console.log("Đã lưu lên Sheets thành công");
+            await loadHistList(); // Tải lại danh sách sau khi lưu
+        }
+    } catch (e) {
+        console.error("Lỗi lưu Cloud:", e);
+        // Nếu lỗi cloud thì sếp có thể dùng LocalStorage làm dự phòng ở đây
+    } finally {
+        gbtn.textContent = ogText;
+    }
 }
 
-function deleteHist() {
-  const val = document.getElementById('hist-sel').value; if(!val) return;
-  if(!confirm(`Bạn có chắc muốn xoá báo cáo "${val}"?`)) return;
-  const hist = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); delete hist[val]; localStorage.setItem(STORAGE_KEY, JSON.stringify(hist)); 
-  loadHistList(); viewHist(); 
+async function deleteHist() {
+    const reportId = document.getElementById('hist-sel').value;
+    if(!reportId) return;
+    
+    // Tìm tên báo cáo trong cache để hiện thông báo xác nhận cho đẹp
+    const rpt = cloudReportsCache.find(item => item.id === reportId);
+    const rptName = rpt ? `${rpt.type} ${rpt.period}` : "này";
+
+    if(!confirm(`Bạn có chắc muốn xoá báo cáo "${rptName}" trên mây không?`)) return;
+    
+    const delBtn = document.getElementById('del-btn');
+    const ogText = delBtn.textContent;
+    delBtn.textContent = "⏳...";
+    delBtn.disabled = true;
+
+    try {
+        await fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'deleteReport', reportId: reportId })
+        });
+        await loadHistList(); // Tải lại danh sách mới nhất
+        viewHist(); // Reset lại màn hình
+    } catch (e) {
+        alert("Lỗi khi xóa dữ liệu trên Cloud!");
+    } finally {
+        delBtn.textContent = "🗑️";
+        delBtn.disabled = false;
+    }
 }
-function deleteAllHist() { if(!confirm(`⚠️ NGUY HIỂM: Xoá TOÀN BỘ lịch sử báo cáo?`)) return; localStorage.removeItem(STORAGE_KEY); loadHistList(); viewHist(); }
 
 // --- XỬ LÝ FILE (ẢNH & EXCEL) DUAL-SUPPORT ---
 let imgs = { hcm: [], hn: [], kpi: [], thang_gunze: [], thang_mp: [], thang_cuahang: [], kosu_stores: [], thang_kosu: [], kpi_kosu: [] };
@@ -837,7 +912,8 @@ let kosuSpend = { total: 0, chinh: 0, phu: 0, ldp: 0, excluded: 0, managers: {} 
 let kosuSapoTextData = ''; 
 
 let dbFiles = { map: null, sapo_cur: null, ads_cur: null, sapo_prev: null, ads_prev: null };
-
+let cloudReportsCache = [];
+  
 function handleDbFile(files, key) {
   if(files.length > 0) {
       dbFiles[key] = files[0];
