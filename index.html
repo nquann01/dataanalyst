@@ -586,6 +586,7 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby2y8N1gRjZ6trrX5wUllu8rs463Z8qGV_E-JHyOfLIXPLZ5DrIDVJ9UuzyTnOR2nL8/exec';
 
 async function checkToken() {
+  
   const token = document.getElementById('token-input').value.trim();
   const errEl = document.getElementById('auth-error');
   const btn = document.querySelector('#auth-screen button');
@@ -608,9 +609,15 @@ async function checkToken() {
     const data = await res.json();
 
     if (data.valid) {
-      // Lưu vào session, tắt màn hình auth
       sessionStorage.setItem('auth_token', token);
       sessionStorage.setItem('auth_name', data.name);
+      
+      fetch(SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'login', token: token })
+      }).catch(() => {});
+      
       document.getElementById('auth-screen').style.display = 'none';
     } else {
       errEl.textContent = data.message || 'Mã không hợp lệ!';
@@ -618,12 +625,6 @@ async function checkToken() {
       btn.textContent = 'Xác nhận →';
       btn.disabled = false;
     }
-  } catch(e) {
-    errEl.textContent = 'Lỗi kết nối, thử lại sau!';
-    errEl.style.display = 'block';
-    btn.textContent = 'Xác nhận →';
-    btn.disabled = false;
-  }
 }
 
 // Cho phép nhấn Enter
@@ -752,12 +753,18 @@ function viewHist() {
   }
 }
 
-function saveHist(type, periodStr, htmlStr) {
+async function saveHist(type, periodStr, htmlStr) {
   const token = sessionStorage.getItem('auth_token') || '';
-  fetch(SCRIPT_URL, {
-    method: 'POST',
-    body: JSON.stringify({ action: 'log', token: token, reportType: type })
-  });
+  
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, // ← thêm dòng này
+      body: JSON.stringify({ action: 'log', token: token, reportType: type })
+    });
+  } catch (e) {
+    console.warn('Ghi log thất bại:', e.message); // ← bắt lỗi để debug
+  }
   const hist = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
   const dateStr = new Date().toLocaleString('vi-VN', {hour: '2-digit', minute:'2-digit', day:'2-digit', month:'2-digit'});
   const keyName = periodStr ? `${type} ${periodStr}` : `Báo cáo ${type} (${dateStr})`;
