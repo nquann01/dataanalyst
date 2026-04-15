@@ -170,6 +170,7 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
 }
 </style>
 </head>
+<body onload="initApp()">
 <!-- MÀN HÌNH NHẬP TOKEN -->
 <div id="auth-screen" style="position:fixed;inset:0;background:#0f1117;display:flex;align-items:center;justify-content:center;z-index:9999;">
   <div style="background:#181c27;border:1px solid #2a3050;border-radius:16px;padding:40px;width:360px;text-align:center;">
@@ -185,7 +186,7 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
     <p id="auth-error" style="color:#ff5f7e;font-size:11px;margin-top:12px;display:none;"></p>
   </div>
 </div>
-<body onload="initApp()">
+
 <div id="ai-setting-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:10000; align-items:center; justify-content:center;">
   <div style="background:var(--sur); border:1px solid var(--bdr); border-radius:12px; width:400px; padding:25px;">
     <h3 style="color:var(--warn); margin-bottom:15px; font-size:16px;">⚙️ Cài đặt Khẩu vị AI</h3>
@@ -408,6 +409,60 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
           </div>
         </div>
       </div>
+
+      <div id="tab-main-dashboard" class="d-none">
+  <div class="sec-lbl" style="color:var(--acc2);">Dashboard Phân Tích SP — Gunze & Mỹ Phẩm</div>
+ 
+  <div class="iblock" style="border-color:var(--tx);">
+    <div class="iblock-hdr">
+      <div class="idot" style="background:var(--tx)"></div>
+      <div class="iblock-title" style="color:var(--tx)">1. Dữ liệu THÁNG HIỆN TẠI</div>
+    </div>
+    <div class="img-area" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div>
+        <div style="font-size:10px;color:var(--tx);margin-bottom:4px;font-weight:600;">🛒 Sapo (Chung G & MP)</div>
+        <div class="drop-zone" style="border-color:rgba(255,255,255,0.4);">
+          <input type="file" accept=".xlsx,.xls,.csv" onchange="handleMainDbFile(this.files,'sapo_cur')">
+          <div class="drop-lbl"><strong style="font-size:10px;color:var(--tx);">Upload Sapo Tháng Này</strong></div>
+        </div>
+        <div id="prev_main_sapo_cur"></div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--acc2);margin-bottom:4px;font-weight:600;">📘 FB Ads (Chung G & MP)</div>
+        <div class="drop-zone" style="border-color:rgba(56,224,176,0.4);">
+          <input type="file" accept=".xlsx,.xls,.csv" onchange="handleMainDbFile(this.files,'ads_cur')">
+          <div class="drop-lbl"><strong style="font-size:10px;color:var(--acc2);">Upload Ads Tháng Này</strong></div>
+        </div>
+        <div id="prev_main_ads_cur"></div>
+      </div>
+    </div>
+  </div>
+ 
+  <div class="iblock" style="border-color:var(--tx3);">
+    <div class="iblock-hdr">
+      <div class="idot" style="background:var(--tx3)"></div>
+      <div class="iblock-title" style="color:var(--tx3)">2. Dữ liệu THÁNG TRƯỚC (Để so sánh MoM)</div>
+    </div>
+    <div class="img-area" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div>
+        <div style="font-size:10px;color:var(--tx3);margin-bottom:4px;font-weight:600;">🛒 Sapo Cũ (Chung G & MP)</div>
+        <div class="drop-zone" style="border-color:var(--tx3);">
+          <input type="file" accept=".xlsx,.xls,.csv" onchange="handleMainDbFile(this.files,'sapo_prev')">
+          <div class="drop-lbl" style="color:var(--tx3);"><strong style="font-size:10px;">Upload Sapo Tháng Trước</strong></div>
+        </div>
+        <div id="prev_main_sapo_prev"></div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--tx3);margin-bottom:4px;font-weight:600;">📘 FB Ads Cũ (Chung G & MP)</div>
+        <div class="drop-zone" style="border-color:var(--tx3);">
+          <input type="file" accept=".xlsx,.xls,.csv" onchange="handleMainDbFile(this.files,'ads_prev')">
+          <div class="drop-lbl" style="color:var(--tx3);"><strong style="font-size:10px;">Upload Ads Tháng Trước</strong></div>
+        </div>
+        <div id="prev_main_ads_prev"></div>
+      </div>
+    </div>
+  </div>
+</div>
 
       <div id="zone-kosu" class="d-none">
         <div id="tab-kosu-tuan">
@@ -706,18 +761,16 @@ function initApp() {
   }
   
   // === GIỚI HẠN TÍNH NĂNG THEO QUYỀN (LÀM MỜ VÀ KHÓA) ===
-  const role = sessionStorage.getItem('user_role');
-  if (role !== 'admin') {
-    // 1. Ép chọn mặc định vào Giày Kosu và Dashboard
-    document.getElementById('p-kosu').checked = true;
-    document.getElementById('db').checked = true;
-    
-    // 2. Gom các nút cần khóa lại
-    const restrictedTabs = [
-      document.querySelector('label[for="p-main"]'), // Tab Gunze & Mỹ phẩm
-      document.querySelector('label[for="tw"]'),     // Tab Báo cáo Tuần
-      document.querySelector('label[for="tm"]')      // Tab Báo cáo Tháng
-    ];
+  const role = sessionStorage.getItem('user_role');
+  if (role !== 'admin') {
+    // 1. Ép chọn mặc định vào tab Dashboard (Vì báo cáo tuần/tháng bị khóa)
+    document.getElementById('db').checked = true;
+    
+    // 2. Gom các nút cần khóa lại (Đã mở khóa tab Gunze & MP, chỉ khóa Báo cáo)
+    const restrictedTabs = [
+      document.querySelector('label[for="tw"]'),     // Tab Báo cáo Tuần
+      document.querySelector('label[for="tm"]')      // Tab Báo cáo Tháng
+    ];
 
     // 3. Làm mờ và khóa click từng nút
     restrictedTabs.forEach(tab => {
@@ -794,7 +847,8 @@ function getApiUrl() { const key = getApiKey() || ""; const model = key ? "gemin
 function updateUI() {
   const ptype = document.querySelector('input[name="ptype"]:checked').value;
   const rtype = document.querySelector('input[name="rtype"]:checked').value;
-  
+
+  document.getElementById('tab-main-dashboard').classList.add('d-none');
   document.getElementById('zone-main').classList.add('d-none');
   document.getElementById('zone-kosu').classList.add('d-none');
   document.getElementById('tab-main-tuan').classList.add('d-none');
@@ -807,7 +861,7 @@ function updateUI() {
     document.getElementById('zone-main').classList.remove('d-none');
     if (rtype === 'Tuần') document.getElementById('tab-main-tuan').classList.remove('d-none');
     else if (rtype === 'Tháng') document.getElementById('tab-main-thang').classList.remove('d-none');
-    else { alert('Dashboard Sản phẩm hiện chỉ hỗ trợ Giày Kosu!'); document.getElementById('tw').checked = true; updateUI(); }
+    else { document.getElementById('tab-main-dashboard').classList.remove('d-none'); }
   } else {
     document.getElementById('zone-kosu').classList.remove('d-none');
     if (rtype === 'Tuần') document.getElementById('tab-kosu-tuan').classList.remove('d-none');
@@ -937,45 +991,98 @@ async function deleteHist() {
     const role = sessionStorage.getItem('user_role');
     if (role !== 'admin') return; // Nhân viên bấm tàng hình cũng ko chạy
 
-    const reportId = document.getElementById('hist-sel').value;
-    if(!reportId) return;
-    const token = sessionStorage.getItem('auth_token'); // Lấy token để gửi
-    
-    const rpt = cloudReportsCache.find(item => item.id === reportId);
-    const rptName = rpt ? `${rpt.type} ${rpt.period}` : "này";
+    const reportId = document.getElementById('hist-sel').value;
+    if(!reportId) return;
+    const token = sessionStorage.getItem('auth_token'); 
+    
+    // Ép kiểu String để tìm chính xác báo cáo trong bộ nhớ, lấy ra ID nguyên bản
+    const rpt = cloudReportsCache.find(item => String(item.id) === String(reportId));
+    if (!rpt) return;
+    
+    const rptName = `${rpt.type} ${rpt.period}`;
 
-    if(!confirm(`Bạn có chắc muốn xoá báo cáo "${rptName}" trên mây không?`)) return;
-    
-    const delBtn = document.getElementById('del-btn');
-    const ogText = delBtn.textContent;
-    delBtn.textContent = "⏳...";
-    delBtn.disabled = true;
+    if(!confirm(`⚠️ Bạn có chắc muốn xoá báo cáo "${rptName}" trên mây không?`)) return;
+    
+    const delBtn = document.getElementById('del-btn');
+    const ogText = delBtn.textContent;
+    delBtn.textContent = "⏳...";
+    delBtn.disabled = true;
 
-    try {
-        const res = await fetch(SCRIPT_URL, {
-            method: 'POST',
-            body: JSON.stringify({ 
+    try {
+        const res = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify({ 
                 action: 'deleteReport', 
-                reportId: reportId,
-                token: token // Gửi token lên backend để chốt chặn
+                reportId: rpt.id, // Gửi đúng ID gốc lên Cloud
+                token: token
             })
         });
         const result = await res.json();
         
         if(!result.success) {
-            alert(result.message); // Hiện thông báo nếu Backend từ chối
+            alert(result.message || "Máy chủ từ chối xoá báo cáo này!"); 
         } else {
-            await loadHistList(); 
-            viewHist(); 
+            alert("✅ Đã xoá báo cáo thành công!");
+            document.getElementById('hist-sel').value = "";
+            document.getElementById('out').innerHTML = `<div class="s-empty"><div class="ico">🗂️</div><p>Báo cáo đã bị xoá. Vui lòng chọn báo cáo khác.</p></div>`;
+            await loadHistList(); 
+            viewHist(); 
         }
-    } catch (e) {
-        alert("Lỗi khi xóa dữ liệu trên Cloud!");
-    } finally {
-        delBtn.textContent = "🗑️";
-        delBtn.disabled = false;
-    }
+    } catch (e) {
+        alert("Lỗi mạng khi xóa dữ liệu trên Cloud!");
+    } finally {
+        delBtn.textContent = "🗑️";
+        delBtn.disabled = false;
+    }
 }
 
+async function deleteAllHist() {
+    const role = sessionStorage.getItem('user_role');
+    if (role !== 'admin') return; 
+
+    if (!cloudReportsCache || cloudReportsCache.length === 0) {
+        alert("Lịch sử đang trống, không có báo cáo nào để xoá!");
+        return;
+    }
+
+    if(!confirm(`⚠️ CẢNH BÁO TỐI CAO: Bạn có chắc chắn muốn xoá SẠCH SẼ toàn bộ ${cloudReportsCache.length} báo cáo trên mây không? Hành động này không thể hoàn tác!`)) return;
+    
+    const delAllBtn = document.getElementById('del-all-btn');
+    const ogText = delAllBtn.textContent;
+    delAllBtn.textContent = "⏳ Đang dọn...";
+    delAllBtn.disabled = true;
+
+    const token = sessionStorage.getItem('auth_token');
+
+    try {
+        let deletedCount = 0;
+        // Lặp qua xoá từng file
+        for (const rpt of cloudReportsCache) {
+            const res = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify({ 
+                    action: 'deleteReport', 
+                    reportId: rpt.id, 
+                    token: token 
+                })
+            });
+            const result = await res.json();
+            if(result.success) deletedCount++;
+        }
+        
+        alert(`✅ Đã dọn dẹp thành công ${deletedCount} báo cáo cũ!`);
+        document.getElementById('hist-sel').value = "";
+        document.getElementById('out').innerHTML = `<div class="s-empty"><div class="ico">🧹</div><p>Lịch sử đã được dọn sạch sẽ!</p></div>`;
+        await loadHistList(); 
+        viewHist(); 
+    } catch (e) {
+        alert("⚠️ Lỗi mạng khi đang dọn dẹp dữ liệu trên Cloud!");
+    } finally {
+        delAllBtn.textContent = ogText;
+        delAllBtn.disabled = false;
+    }
+}
+  
 // --- XỬ LÝ FILE (ẢNH & EXCEL) DUAL-SUPPORT ---
 let imgs = { hcm: [], hn: [], kpi: [], thang_gunze: [], thang_mp: [], thang_cuahang: [], kosu_stores: [], thang_kosu: [], kpi_kosu: [] };
 let excels = { hcm: [], hn: [], kpi: [], thang_gunze: [], thang_mp: [], thang_cuahang: [], kosu_stores: [], thang_kosu: [], kpi_kosu: [] };
@@ -1118,8 +1225,18 @@ function handleKosuAdsFile(files) {
   r.readAsArrayBuffer(f);
 }
 
-// (Hàm processKosuAdsCSV của sếp giữ nguyên, nếu mất thì sếp bảo tôi gửi lại nhé)
-// ... [Nội dung processKosuAdsCSV] ...
+function processKosuAdsCSV(rawText, filename) {
+  try {
+    // Sếp dán code bóc tách số liệu FB Ads của sếp vào đây nhé
+    // Nếu sếp cần em viết lại logic bóc tách cột Chi tiêu, Hiển thị... thì bảo em.
+    
+    kosuAdsTextData = `\n=== DỮ LIỆU ADS KOSU (${filename}) ===\n` + rawText.substring(0, 3000); // Tạm thời gửi text thô cho AI đọc
+    
+    document.getElementById('preview-kosu-ads').innerHTML = `<div style="font-size:11px; font-weight:600; color:var(--kosu); padding-top:5px;">✓ Đã tải File Ads: ${filename}</div>`;
+  } catch (err) {
+    document.getElementById('preview-kosu-ads').innerHTML = `<div style="font-size:11px; color:var(--danger); padding-top:5px;">❌ Lỗi đọc Ads: ${err.message}</div>`;
+  }
+}
 
 function handleKosuSapoFile(files) {
   if (!files || files.length === 0) return;
@@ -2036,11 +2153,11 @@ async function gen() {
   const role = sessionStorage.getItem('user_role');
 
   // === CHỐT CHẶN F12 ===
-  if (role !== 'admin' && (ptype !== 'Kosu' || type !== 'Dashboard')) {
-      alert("Hành động bị từ chối: Bạn chỉ được cấp quyền sử dụng tính năng Dashboard Kosu!");
-      return;
-  }
-  // =====================
+  if (role !== 'admin' && type !== 'Dashboard') {
+      alert("Hành động bị từ chối: Bạn chỉ được cấp quyền sử dụng tính năng Dashboard!");
+      return;
+  }
+  // =====================
 
   const url = getApiUrl();
   document.getElementById('hist-sel').value = ""; 
@@ -2096,7 +2213,7 @@ JSON output:
         setStep(3); renderTuan(parsed, gc, mc, khmGunzeTotal, khmGunzeHCM, khmGunzeHN, khmMpTotal, khmMpHCM, khmMpHN, week, from, to);
         saveHist('Tuần', week, document.getElementById('out').innerHTML);
 
-      } else {
+      } else if (type === 'Tháng') {
         const period = document.getElementById('month').value.trim(); const from = document.getElementById('m-from').value.trim(); const to = document.getElementById('m-to').value.trim();
         const hasKpi = imgs.kpi.length > 0 || excels.kpi.length > 0;
         const hasData = imgs.thang_gunze.length > 0 || excels.thang_gunze.length > 0 || imgs.thang_mp.length > 0 || excels.thang_mp.length > 0 || imgs.thang_cuahang.length > 0 || excels.thang_cuahang.length > 0 || excelTextData;
@@ -2140,6 +2257,8 @@ Trả về JSON thuần:
         const parsed = JSON.parse(rawResponse);
         setStep(3); renderThang(parsed, period, from, to);
         saveHist('Tháng', period, document.getElementById('out').innerHTML);
+      } else if (type === 'Dashboard') {
+        await genMainDashboard();
       }
     } else if (ptype === 'Kosu') {
       if (type === 'Tuần') {
@@ -2199,6 +2318,7 @@ JSON output:
         saveHist('Kosu Tuần', week, document.getElementById('out').innerHTML);
 
       } else if (type === 'Tháng') {
+        
         const month = document.getElementById('month-k').value.trim(); 
         const from = document.getElementById('m-from-k').value.trim(); 
         const to = document.getElementById('m-to-k').value.trim();
@@ -3267,6 +3387,553 @@ function getAiPersonaPrompt() {
   
   return prompt;
 }
+  
+// ─── FILE HANDLES cho Dashboard Main ───
+let mainDbFiles = { sapo_cur: null, sapo_prev: null, ads_cur: null, ads_prev: null };
+window.currentMainViewFilter = 'All';
+
+function handleMainDbFile(files, key) {
+  if (!files || files.length === 0) return;
+  mainDbFiles[key] = files[0];
+  const el = document.getElementById('prev_main_' + key);
+  if (el) el.innerHTML = `<div style="font-size:10px;color:var(--acc2);margin-top:5px;font-weight:600;">✓ ${files[0].name}</div>`;
+}
+
+// ─── PARSE SAPO CHO MAIN (Gộp chung 1 file) ───
+function processMainSapo(dataArr, filterProject) {
+  let res = {
+    topSp: {}, totalRev: 0,
+    projectRev: { Gunze: 0, MP: 0 },
+    projectBanRa: { Gunze: 0, MP: 0 },
+    projectTra: { Gunze: 0, MP: 0 },
+    projectSpend: { Gunze: 0, MP: 0 },
+    brandStats: {}, catTypeStats: {},
+    dailyMap: { Gunze: {}, MP: {} },
+    srcMap: { Gunze: {}, MP: {} },
+    hoanByCat: {},
+    regionRev: { HN: { Gunze: 0, MP: 0 }, HCM: { Gunze: 0, MP: 0 }, Other: { Gunze: 0, MP: 0 } }
+  };
+  if (!dataArr || !dataArr.length) return res;
+
+  let hd = dataArr[0].map(h => (h||'').normalize('NFC').toLowerCase().replace(/[\u200B-\u200D\uFEFF]/g,'').trim());
+  let nameIdx   = hd.findIndex(h => h.includes('tên sản phẩm'));
+  let revIdx    = hd.findIndex(h => h.includes('doanh thu thuần') || h === 'doanh thu');
+  let qtyIdx    = hd.findIndex(h => h.includes('hàng thực bán') || h.includes('số lượng'));
+  let banRaIdx  = hd.findIndex(h => h.includes('hàng bán ra'));
+  let traIdx    = hd.findIndex(h => h.includes('hàng trả lại'));
+  let srcIdx    = hd.findIndex(h => h.includes('nguồn'));
+  let dateIdx   = hd.findIndex(h => h === 'ngày' || h.includes('ngày'));
+  let brandIdx  = hd.findIndex(h => h.includes('nhãn hiệu') || h.includes('thuong hieu') || h.includes('thương hiệu'));
+  let catTypeIdx= hd.findIndex(h => h.includes('loại sản phẩm') || h.includes('nhóm sản phẩm') || h.includes('nhóm'));
+  let cityIdx   = hd.findIndex(h => h.includes('tỉnh/thành phố') || h.includes('tỉnh') || h.includes('thành phố'));
+
+  if (nameIdx === -1 || revIdx === -1) return res;
+
+  const classifyProject = (name, brand, catType) => {
+    const cCat = (catType || '').toLowerCase();
+    // 1. Ưu tiên tuyệt đối cột Loại sản phẩm trong file Sapo
+    if (cCat.startsWith('mp') || cCat.includes('mỹ phẩm') || cCat.includes('my pham')) return 'MP';
+    if (cCat.startsWith('tt ') || cCat.includes('gunze')) return 'Gunze';
+
+    // 2. Dự phòng: Quét từ khóa trong Tên SP và Nhãn hiệu
+    const combined = ((name || '') + ' ' + (brand || '') + ' ' + cCat).toLowerCase();
+    if (combined.match(/kem|serum|toner|lotion|mask|mặt nạ|dưỡng|làm trắng|chống nắng|lip|son|phấn|mascara|eyeliner|foundation|bb|cc|essence|mỹ phẩm|skincare|haircare|dầu gội|sữa tắm|dưỡng thể|my pham|kose|kanebo|elixir|cezanne|ahalo|tẩy trang|rửa mặt|xịt khoáng|dầu xả|nhuộm|kẻ mắt|lông mày/)) return 'MP';
+    if (combined.match(/gunze|quần|áo|lót|undershirt|underwear|vớ|tất|boxer|brief|bra|áo thun|áo ba lỗ/)) return 'Gunze';
+    
+    return 'Gunze'; // Mặc định đẩy về Gunze
+  };
+
+  for (let i = 1; i < dataArr.length; i++) {
+    let row = dataArr[i];
+    if (!row || !row[nameIdx]) continue;
+
+    let name    = (row[nameIdx] || '').trim();
+    let rev     = parseAnyNum(row[revIdx]);
+    let qty     = qtyIdx    !== -1 ? parseAnyNum(row[qtyIdx])    : 1;
+    let banRa   = banRaIdx  !== -1 ? parseAnyNum(row[banRaIdx])  : Math.abs(qty);
+    let tra     = traIdx    !== -1 ? parseAnyNum(row[traIdx])    : 0;
+    let src     = srcIdx    !== -1 ? (row[srcIdx]  || '').trim() : '';
+    let dt      = dateIdx   !== -1 ? (row[dateIdx] || '').trim() : '';
+    let brand   = brandIdx  !== -1 ? (row[brandIdx]|| '').trim() : '';
+    let catType = catTypeIdx!== -1 ? (row[catTypeIdx]||'').trim(): '';
+    let city    = cityIdx   !== -1 ? (row[cityIdx] || '').trim().toLowerCase() : '';
+
+    if (!name || (rev === 0 && qty === 0 && banRa === 0)) continue;
+
+    let project = classifyProject(name, brand, catType);
+    if (filterProject !== 'All' && project !== filterProject) continue;
+
+    res.totalRev += rev;
+    res.projectRev[project]    = (res.projectRev[project] || 0) + rev;
+    res.projectBanRa[project]  = (res.projectBanRa[project] || 0) + (banRa || 0);
+    res.projectTra[project]    = (res.projectTra[project] || 0) + tra;
+
+    if (!res.topSp[name]) res.topSp[name] = { qty: 0, rev: 0, project };
+    res.topSp[name].qty += qty;
+    res.topSp[name].rev += rev;
+
+    if (brand) {
+      if (!res.brandStats[brand]) res.brandStats[brand] = { rev: 0, qty: 0, ban_ra: 0, tra: 0, project };
+      res.brandStats[brand].rev += rev;
+      res.brandStats[brand].qty += qty;
+      res.brandStats[brand].ban_ra += banRa || 0;
+      res.brandStats[brand].tra += tra;
+    }
+
+    if (catType) {
+      if (!res.catTypeStats[catType]) res.catTypeStats[catType] = { rev: 0, qty: 0, project };
+      res.catTypeStats[catType].rev += rev;
+      res.catTypeStats[catType].qty += qty;
+    }
+
+    if (dt) res.dailyMap[project][dt] = (res.dailyMap[project][dt] || 0) + rev;
+
+    if (!res.srcMap[project][src]) res.srcMap[project][src] = { rev: 0, ban_ra: 0, tra: 0, don: 0 };
+    res.srcMap[project][src].rev    += rev;
+    res.srcMap[project][src].ban_ra += banRa || 0;
+    res.srcMap[project][src].tra    += tra;
+    res.srcMap[project][src].don    += 1;
+
+    let hoanKey = (catType || 'Khác') + '|' + project;
+    if (!res.hoanByCat[hoanKey]) res.hoanByCat[hoanKey] = { cat: catType || 'Khác', project, ban_ra: 0, tra: 0 };
+    res.hoanByCat[hoanKey].ban_ra += banRa || 0;
+    res.hoanByCat[hoanKey].tra    += tra;
+
+    let region = 'Other';
+    if (city.includes('hà nội') || city.includes('ha noi')) region = 'HN';
+    else if (city.includes('hồ chí minh') || city.includes('ho chi minh') || city === 'hcm') region = 'HCM';
+    res.regionRev[region][project] = (res.regionRev[region][project] || 0) + rev;
+  }
+  return res;
+}
+
+// ─── PROCESS ADS CHO MAIN (Gộp chung 1 file) ───
+function processMainAdsCombined(adsArr, sapoStats, filterProject) {
+  if (!adsArr || !adsArr.length) return;
+  let hdRow = adsArr.find(r => r.join('').toLowerCase().includes('amount spent') || r.join('').toLowerCase().includes('chi tiêu') || r.join('').toLowerCase().includes('chi phí'));
+  if (!hdRow) return;
+  let hd = hdRow.map(h => (h||'').toLowerCase().replace(/[\u200B-\u200D\uFEFF]/g,'').trim());
+  let campIdx  = hd.findIndex(h => h.includes('tên chiến dịch') || h.includes('campaign name'));
+  let spendIdx = hd.findIndex(h => h.includes('amount spent') || h.includes('chi tiêu') || h.includes('chi phí'));
+  if (campIdx === -1 || spendIdx === -1) return;
+
+  let startIdx = adsArr.indexOf(hdRow) + 1;
+  if (!sapoStats.channelSpends) sapoStats.channelSpends = { Gunze: {}, MP: {} };
+
+  for (let i = startIdx; i < adsArr.length; i++) {
+    let campName = (adsArr[i][campIdx] || '').toLowerCase().trim();
+    let spend    = parseAnyNum(adsArr[i][spendIdx]);
+    if (!campName || spend === 0 || campName === 'total') continue;
+
+    // AI phân loại chiến dịch
+    let proj = 'Gunze'; 
+    if (campName.match(/mp|mỹ phẩm|kem|serum|toner|son|mask|my pham|kose|kanebo|elixir|cezanne/)) proj = 'MP';
+    else if (campName.match(/gunze|đồ lót|áo lót|quần lót/)) proj = 'Gunze';
+
+    if (filterProject !== 'All' && proj !== filterProject) continue;
+    if (!sapoStats.channelSpends[proj]) sapoStats.channelSpends[proj] = {};
+
+    // 3. Phân bổ vào Kênh (Phễu) theo quy tắc mới của sếp
+    let chGrp = 'Page Phụ'; // Mặc định thả vào Page Phụ trước
+    
+    if (campName.includes('livestream') || campName.includes('live')) {
+        chGrp = 'Livestream';
+    } else if (campName.includes('chuyển đổi') || campName.includes('chuyen doi') || campName.includes('ldp')) {
+        chGrp = 'LDP';
+    } else if (campName.includes('zalo')) {
+        chGrp = 'Zalo';
+    } else if (campName.includes('web') || campName.includes('cpo')) {
+        chGrp = 'Web'; // Chứa web thì vào mảng Web
+    } else if (campName.includes('jps')) {
+        chGrp = 'Page Chính'; // Chứa JPS thì mới là Page Chính
+    } 
+    // Các chiến dịch còn lại (không jps, không web, không ldp...) sẽ tự động giữ nguyên là 'Page Phụ'
+
+    sapoStats.channelSpends[proj][chGrp] = (sapoStats.channelSpends[proj][chGrp] || 0) + spend;
+    sapoStats.projectSpend[proj] = (sapoStats.projectSpend[proj] || 0) + spend;
+  }
+}
+
+// ─── RENDER DASHBOARD MAIN ───
+async function genMainDashboard() {
+  if (!mainDbFiles.sapo_cur) {
+    alert('Vui lòng tải lên File Sapo Tháng hiện tại!');
+    document.getElementById('gbtn').disabled = false;
+    document.getElementById('out').innerHTML = `<div class="s-empty"><div class="ico">🗂️</div><p>Vui lòng tải lên dữ liệu.</p></div>`;
+    return;
+  }
+
+  setStep(1);
+  const [sapoCurData, sapoPrevData, adsCurData, adsPrevData] = await Promise.all([
+    parseCSVAsync(mainDbFiles.sapo_cur),
+    parseCSVAsync(mainDbFiles.sapo_prev),
+    parseCSVAsync(mainDbFiles.ads_cur),
+    parseCSVAsync(mainDbFiles.ads_prev)
+  ]);
+
+  const filters = ['All', 'Gunze', 'MP'];
+  window.mainDbCache = {};
+
+  for (let f of filters) {
+    let sapCur  = processMainSapo(sapoCurData,  f);
+    let sapPrev = processMainSapo(sapoPrevData, f);
+    processMainAdsCombined(adsCurData, sapCur, f);
+    processMainAdsCombined(adsPrevData, sapPrev, f);
+    window.mainDbCache[f] = { sapCur, sapPrev };
+  }
+
+  setStep(2);
+  const allCache = window.mainDbCache['All'];
+  const rawText  = buildMainRawText(allCache.sapCur, allCache.sapPrev);
+
+  let parsedAi = { eval_sp: ['—'], eval_hoan: ['—'], eval_kenh: ['—'], eval_compare: ['—'], ket_luan: ['—'] };
+  try {
+    const url = getApiUrl();
+    const sysPrompt = `Bạn là Chuyên gia Phân tích Marketing. Dữ liệu Dashboard Gunze & Mỹ Phẩm:\n${rawText}\n\nHãy phân tích:\n1. "eval_sp": Nhận xét Sản phẩm/Thương hiệu.\n2. "eval_hoan": Nhận xét tỷ lệ hoàn.\n3. "eval_kenh": Hiệu quả Kênh (đặc biệt chú ý ROAS & CPO).\n4. "eval_compare": So sánh Gunze vs MP.\n5. "ket_luan": Đề xuất hành động chiến lược.\nTrả về JSON thuần: {"eval_sp":["..."],"eval_hoan":["..."],"eval_kenh":["..."],"eval_compare":["..."],"ket_luan":["..."]}`;
+    const customNote = document.getElementById('ai-custom-note') ? document.getElementById('ai-custom-note').value.trim() : '';
+    const extraPrompt = (customNote ? `\n\n=== LƯU Ý THÊM ===\n${customNote}` : '') + getAiPersonaPrompt();
+    const res = await fetchWithRetry(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: sysPrompt + extraPrompt }] }], generationConfig: { responseMimeType: 'application/json', temperature: 0.3 } })
+    });
+    const d = await res.json();
+    let rawAi = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    let fi = rawAi.indexOf('{'), li = rawAi.lastIndexOf('}');
+    if (fi !== -1 && li !== -1) parsedAi = JSON.parse(rawAi.substring(fi, li + 1));
+  } catch (e) { console.error('AI error:', e); }
+
+  window.mainDbCache['All'].parsedAi = parsedAi;
+  for (let f of ['Gunze', 'MP']) window.mainDbCache[f].parsedAi = null;
+
+  setStep(3);
+  const tpl = document.getElementById('tpl-main-dashboard-layout');
+  const clone = tpl.content.cloneNode(true);
+  const out = document.getElementById('out');
+  out.innerHTML = '';
+  out.appendChild(clone);
+
+  document.getElementById('main-db-text-report').innerHTML = rawText;
+
+  renderMainDbView('All');
+  injectMainAiEval(parsedAi);
+
+  saveHist('Dashboard Main', 'Gunze+MP', document.getElementById('out').innerHTML);
+}
+
+function buildMainRawText(sapCur, sapPrev) {
+  let txt = 'BÁO CÁO CƠ CẤU SẢN PHẨM GUNZE & MỸ PHẨM\n';
+  txt += `Gunze: DT ${fmtNum(sapCur.projectRev.Gunze)} | Chi phí: ${fmtNum(sapCur.projectSpend.Gunze)} | Hoàn ${sapCur.projectTra?.Gunze||0}\n`;
+  txt += `MP: DT ${fmtNum(sapCur.projectRev.MP)} | Chi phí: ${fmtNum(sapCur.projectSpend.MP)} | Hoàn ${sapCur.projectTra?.MP||0}\n\n`;
+
+  let topSp = Object.entries(sapCur.topSp).sort((a,b)=>b[1].rev-a[1].rev).slice(0,10);
+  txt += 'TOP SP: ' + topSp.map((p,i)=>`${i+1}.${p[0]}(${fmtNum(p[1].rev)}₫)`).join(', ') + '\n\n';
+  return txt;
+}
+
+function renderMainDbView(filter) {
+  window.currentMainViewFilter = filter;
+  const cache = window.mainDbCache[filter];
+  if (!cache) return;
+  const { sapCur, sapPrev } = cache;
+
+  const momStr = (cur, prev) => {
+    if (!prev || prev === 0) return { str: '—', cls: 'color:var(--tx3)' };
+    let pct = ((cur - prev) / prev * 100).toFixed(1);
+    return { str: (parseFloat(pct) >= 0 ? '+' : '') + pct + '%', cls: parseFloat(pct) >= 0 ? 'color:var(--acc2)' : 'color:var(--danger)' };
+  };
+
+  const compareTbody = document.getElementById('main-compare-tbody');
+  if (compareTbody) {
+    const gRevCur = sapCur.projectRev.Gunze || 0;  const mRevCur = sapCur.projectRev.MP    || 0;
+    const gRevPrev= sapPrev.projectRev.Gunze|| 0;  const mRevPrev= sapPrev.projectRev.MP   || 0;
+    const gTraCur = sapCur.projectTra.Gunze || 0;  const mTraCur = sapCur.projectTra.MP    || 0;
+    const gBanCur = sapCur.projectBanRa.Gunze || 0;const mBanCur = sapCur.projectBanRa.MP    || 0;
+    const gSpendCur = sapCur.projectSpend.Gunze || 0; const mSpendCur = sapCur.projectSpend.MP || 0;
+    const gSpendPrev = sapPrev.projectSpend.Gunze || 0; const mSpendPrev = sapPrev.projectSpend.MP || 0;
+
+    const gRoasCur = gSpendCur > 0 ? (gRevCur / gSpendCur).toFixed(1) : '—';
+    const mRoasCur = mSpendCur > 0 ? (mRevCur / mSpendCur).toFixed(1) : '—';
+    const tRoasCur = (gSpendCur + mSpendCur) > 0 ? ((gRevCur + mRevCur) / (gSpendCur + mSpendCur)).toFixed(1) : '—';
+
+    const rows = [
+      ['Doanh thu', fmtNum(gRevCur), fmtNum(mRevCur), fmtNum(gRevCur + mRevCur), momStr(gRevCur, gRevPrev), momStr(mRevCur, mRevPrev)],
+      ['Chi phí Ads', fmtNum(gSpendCur), fmtNum(mSpendCur), fmtNum(gSpendCur + mSpendCur), momStr(gSpendCur, gSpendPrev), momStr(mSpendCur, mSpendPrev)],
+      ['ROAS', gRoasCur, mRoasCur, tRoasCur, '—', '—'],
+      ['Số đơn bán ra', gBanCur, mBanCur, gBanCur + mBanCur, momStr(gBanCur, sapPrev.projectBanRa.Gunze||0), momStr(mBanCur, sapPrev.projectBanRa.MP||0)],
+      ['Số hoàn', gTraCur, mTraCur, gTraCur + mTraCur, '—', '—'],
+      ['% Hoàn', (gBanCur+gTraCur)>0?((gTraCur/(gBanCur+gTraCur))*100).toFixed(1)+'%':'—', (mBanCur+mTraCur)>0?((mTraCur/(mBanCur+mTraCur))*100).toFixed(1)+'%':'—', '—', '—', '—']
+    ];
+    compareTbody.innerHTML = rows.map(r => `<tr><td style="font-weight:700;color:var(--tx)">${r[0]}</td><td style="color:var(--gunze);font-weight:700">${r[1]}</td><td style="color:var(--mp);font-weight:700">${r[2]}</td><td style="color:var(--tx)">${r[3]}</td><td style="font-weight:700;${typeof r[4]==='object'?r[4].cls:''}">${typeof r[4]==='object'?r[4].str:r[4]}</td><td style="font-weight:700;${typeof r[5]==='object'?r[5].cls:''}">${typeof r[5]==='object'?r[5].str:r[5]}</td></tr>`).join('');
+  }
+
+  // ── Biểu đồ Doanh Thu ──
+  const chartContainer = document.getElementById('main-daily-chart-container');
+  if (chartContainer) {
+    const allDates = Array.from(new Set([...Object.keys(sapCur.dailyMap.Gunze || {}), ...Object.keys(sapCur.dailyMap.MP || {})])).sort((a, b) => {
+      let [da, ma] = a.split('/'); let [db, mb] = b.split('/'); return (parseInt(ma) * 100 + parseInt(da)) - (parseInt(mb) * 100 + parseInt(db));
+    });
+    const gVals = allDates.map(d => sapCur.dailyMap.Gunze?.[d] || 0); const mVals = allDates.map(d => sapCur.dailyMap.MP?.[d] || 0); const maxVal = Math.max(...gVals, ...mVals, 1);
+    if (allDates.length === 0) { chartContainer.innerHTML = '<div style="color:var(--tx3);font-size:12px;text-align:center;padding:20px">Không có dữ liệu ngày</div>'; } else {
+      chartContainer.innerHTML = `<div style="display:flex;align-items:flex-end;gap:3px;height:120px;overflow-x:auto;padding-bottom:6px;">${allDates.map((label, i) => {
+        let gH = Math.max(Math.round((gVals[i] / maxVal) * 100), gVals[i]>0?2:0); let mH = Math.max(Math.round((mVals[i] / maxVal) * 100), mVals[i]>0?2:0); let day = label.split('/')[0];
+        return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;min-width:14px;gap:1px;" title="${label}: Gunze ${fmtNum(gVals[i])} | MP ${fmtNum(mVals[i])}"><div style="width:100%;display:flex;align-items:flex-end;gap:1px;height:110px;"><div style="flex:1;height:${gH}px;background:var(--gunze);border-radius:2px 2px 0 0;opacity:0.85;"></div><div style="flex:1;height:${mH}px;background:var(--mp);border-radius:2px 2px 0 0;opacity:0.85;"></div></div><div style="font-size:7px;color:var(--tx3);margin-top:2px;">${day}</div></div>`;
+      }).join('')}</div><div style="display:flex;justify-content:space-between;margin-top:8px;font-size:10px;color:var(--tx3);flex-wrap:wrap;gap:8px;"><span>Gunze TB/ngày: <strong style="color:var(--gunze)">${fmtNum(Math.round(gVals.reduce((s,v)=>s+v,0)/Math.max(gVals.filter(v=>v>0).length,1)))} ₫</strong></span><span>MP TB/ngày: <strong style="color:var(--mp)">${fmtNum(Math.round(mVals.reduce((s,v)=>s+v,0)/Math.max(mVals.filter(v=>v>0).length,1)))} ₫</strong></span></div>`;
+    }
+  }
+
+  // ── Gộp dữ liệu Top cho Current và Prev ──
+  const mergeTop = (curObj, prevObj) => {
+    let map = {};
+    for (let [k,v] of Object.entries(curObj)) map[k] = { name: k, project: v.project, curRev: v.rev, curQty: v.qty, prevRev: 0, prevQty: 0 };
+    for (let [k,v] of Object.entries(prevObj)) {
+      if (!map[k]) map[k] = { name: k, project: v.project, curRev: 0, curQty: 0, prevRev: 0, prevQty: 0 };
+      map[k].prevRev = v.rev; map[k].prevQty = v.qty;
+    }
+    return Object.values(map);
+  };
+
+  const setTopData = (id, list) => {
+    const container = document.getElementById(id);
+    if(container) { container.setAttribute('data-list-sp', encodeURIComponent(JSON.stringify(list))); container.setAttribute('data-total-sp', sapCur.totalRev); renderMainTopList(container, 'curRev'); }
+  };
+  setTopData('main-top-sp', mergeTop(sapCur.topSp, sapPrev.topSp));
+  setTopData('main-top-brand', mergeTop(sapCur.brandStats, sapPrev.brandStats));
+  setTopData('main-top-cattype', mergeTop(sapCur.catTypeStats, sapPrev.catTypeStats));
+  // ── Bảng Nhãn Hiệu (Brand) ──
+  const brandTbody = document.getElementById('main-brand-tbody');
+  if (brandTbody) {
+    let brandMap = {};
+    for(let [k,v] of Object.entries(sapCur.brandStats)) brandMap[k] = { ...v, prev_rev: 0, prev_ban_ra: 0, prev_tra: 0 };
+    for(let [k,v] of Object.entries(sapPrev.brandStats)) {
+       if(!brandMap[k]) brandMap[k] = { project: v.project, rev: 0, qty: 0, ban_ra: 0, tra: 0, prev_rev: 0, prev_ban_ra: 0, prev_tra: 0 };
+       brandMap[k].prev_rev = v.rev; brandMap[k].prev_ban_ra = v.ban_ra || 0; brandMap[k].prev_tra = v.tra || 0;
+    }
+    
+    const rows = Object.entries(brandMap).sort((a,b) => b[1].rev - a[1].rev);
+    brandTbody.innerHTML = rows.map(([name, b]) => {
+      if (b.rev === 0 && b.prev_rev === 0 && b.tra === 0 && b.prev_tra === 0) return '';
+      let pct = sapCur.totalRev > 0 ? (b.rev / sapCur.totalRev * 100).toFixed(1) : 0;
+      let tot = b.ban_ra + b.tra; let hPct = tot > 0 ? (b.tra / tot * 100).toFixed(1) : '0.0';
+      let prevTot = b.prev_ban_ra + b.prev_tra; let prevHPct = prevTot > 0 ? (b.prev_tra / prevTot * 100).toFixed(1)+'%' : '—';
+      let textCol = parseFloat(hPct)>20?'color:var(--danger);font-weight:700':parseFloat(hPct)>12?'color:var(--warn);font-weight:600':'color:var(--acc2);font-weight:600';
+      let projColor = b.project === 'Gunze' ? 'var(--gunze)' : 'var(--mp)';
+      let projBadge = `<span style="font-size:9px;padding:1px 6px;border-radius:3px;background:${b.project==='Gunze'?'rgba(79,124,255,0.15)':'rgba(56,224,176,0.15)'};color:${projColor}">${b.project}</span>`;
+      
+      return `<tr>
+        <td style="font-weight:700;color:var(--tx);text-align:left;">${name}</td>
+        <td>${projBadge}</td>
+        <td><div style="display:flex;align-items:center;gap:5px;justify-content:flex-end;"><div style="width:40px;background:var(--bdr);height:4px;border-radius:2px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${projColor};"></div></div><span style="font-size:10px;color:${projColor};font-weight:700;min-width:28px;">${pct}%</span></div></td>
+        <td style="color:var(--tx);font-weight:700;">${fmtNum(b.rev)}</td>
+        <td style="color:var(--tx2);">${fmtNum(b.prev_rev)}</td>
+        <td style="font-weight:700;${momStr(b.rev,b.prev_rev).cls}">${momStr(b.rev,b.prev_rev).str}</td>
+        <td>${b.qty}</td>
+        <td style="${textCol}">${hPct}%</td>
+        <td style="color:var(--tx2);font-size:10px;">${prevHPct}</td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--tx3);padding:10px;">Không có dữ liệu nhãn hiệu</td></tr>';
+  }
+
+  // ── Bảng hoàn trả (Gộp Current & Prev) ──
+  const hoanTbody = document.getElementById('main-hoan-tbody');
+  if (hoanTbody) {
+    let hoanAlert = [];
+    let hoanMap = {};
+    for(let [k,v] of Object.entries(sapCur.hoanByCat)) hoanMap[k] = { ...v, prev_ban_ra: 0, prev_tra: 0 };
+    for(let [k,v] of Object.entries(sapPrev.hoanByCat)) {
+       if(!hoanMap[k]) hoanMap[k] = { cat: v.cat, project: v.project, ban_ra: 0, tra: 0, prev_ban_ra: 0, prev_tra: 0 };
+       hoanMap[k].prev_ban_ra = v.ban_ra; hoanMap[k].prev_tra = v.tra;
+    }
+    
+    const rows = Object.values(hoanMap).sort((a,b) => { let ra = a.ban_ra+a.tra>0?a.tra/(a.ban_ra+a.tra):0; let rb = b.ban_ra+b.tra>0?b.tra/(b.ban_ra+b.tra):0; return rb - ra; });
+    hoanTbody.innerHTML = rows.map(h => {
+      let tot = h.ban_ra + h.tra; let pct = tot > 0 ? (h.tra / tot * 100).toFixed(1) : '0.0';
+      let prevTot = h.prev_ban_ra + h.prev_tra; let prevPct = prevTot > 0 ? (h.prev_tra / prevTot * 100).toFixed(1)+'%' : '—';
+      if (tot === 0 && prevTot === 0) return '';
+      let barCol = parseFloat(pct)>20?'var(--danger)':parseFloat(pct)>12?'var(--warn)':'var(--acc2)';
+      let textCol = parseFloat(pct)>20?'color:var(--danger);font-weight:700':parseFloat(pct)>12?'color:var(--warn);font-weight:600':'color:var(--acc2);font-weight:600';
+      let projBadge = `<span style="font-size:9px;padding:1px 6px;border-radius:3px;background:${h.project==='Gunze'?'rgba(79,124,255,0.15)':'rgba(56,224,176,0.15)'};color:${h.project==='Gunze'?'var(--gunze)':'var(--mp)'}">${h.project}</span>`;
+      if (parseFloat(pct) > 20) hoanAlert.push(`[${h.project}] ${h.cat}: ${pct}%`);
+      return `<tr><td style="font-weight:700;color:var(--tx)">${h.cat}</td><td>${projBadge}</td><td>${h.tra}</td><td>${tot}</td><td><div style="display:flex;align-items:center;gap:6px;justify-content:flex-end;"><div style="width:50px;background:var(--bdr);height:5px;border-radius:3px;overflow:hidden;"><div style="width:${Math.min(parseFloat(pct)*3,100)}%;height:100%;background:${barCol};"></div></div><span style="${textCol};min-width:36px">${pct}%</span></div></td><td style="color:var(--tx2);">${h.prev_tra}</td><td style="color:var(--tx2);">${prevTot}</td><td style="color:var(--tx2);font-size:10px;">${prevPct}</td></tr>`;
+    }).join('');
+    const alertBox = document.getElementById('main-hoan-alert-box'); const okBox = document.getElementById('main-hoan-ok-box');
+    if (alertBox && okBox) { if (hoanAlert.length > 0) { alertBox.innerHTML = '⚠ Báo động: ' + hoanAlert.join(' · '); alertBox.style.display = 'block'; okBox.style.display = 'none'; } else { alertBox.style.display = 'none'; okBox.style.display = 'block'; } }
+  }
+
+  // ── Bảng Kênh (Gộp Current & Prev) ──
+  const channelTbody = document.getElementById('main-channel-tbody');
+  if (channelTbody) {
+    const CHANNEL_GROUPS = ['Page Chính', 'Page Phụ', 'LDP', 'Web', 'Livestream', 'Zalo', 'CSL', 'Khác'];
+    const projectList = filter === 'All' ? ['Gunze', 'MP'] : [filter];
+    
+    const buildChStats = (sapData) => {
+      let stats = {};
+      for (let proj of projectList) {
+        let srcMap = sapData.srcMap[proj] || {};
+        for (let [src, v] of Object.entries(srcMap)) {
+          let sLower = src.toLowerCase(); let grp = 'Khác';
+          if (sLower === 'facebook') grp = 'Page Chính'; else if (sLower.includes('livestream')||sLower.includes('live')) grp = 'Livestream'; else if (sLower.includes('zalo')) grp = 'Zalo'; else if (sLower === 'csl') grp = 'CSL'; else if (sLower.includes('ldp')) grp = 'LDP'; else if (sLower.includes('web')) grp = 'Web'; else if (sLower.includes('page')) grp = 'Page Phụ';
+          
+          let key = grp + '|' + proj; // Tạo chìa khóa kép: Tên Kênh + Tên Dự án
+          if (!stats[key]) stats[key] = { proj, grp, rev:0, ban_ra:0, tra:0, spend:0, don:0 };
+          stats[key].rev += v.rev; stats[key].ban_ra += v.ban_ra||0; stats[key].tra += v.tra; stats[key].don += v.don||0;
+        }
+        let spendMap = sapData.channelSpends?.[proj] || {};
+        for (let [grp, sp] of Object.entries(spendMap)) {
+          let key = grp + '|' + proj;
+          if (!stats[key]) stats[key] = { proj, grp, rev:0, ban_ra:0, tra:0, spend:0, don:0 };
+          stats[key].spend += sp;
+        }
+      }
+      return stats;
+    };
+
+    let curChStats = buildChStats(sapCur);
+    let prevChStats = buildChStats(sapPrev);
+    let totalChRevCur = Object.values(curChStats).reduce((s,v)=>s+(v.rev||0), 0);
+    
+    let allRows = [];
+    for (let grp of CHANNEL_GROUPS) {
+      for (let proj of projectList) {
+        let key = grp + '|' + proj;
+        let c = curChStats[key] || {proj: proj, grp: grp, rev:0, ban_ra:0, tra:0, spend:0, don:0};
+        let p = prevChStats[key] || {proj: proj, grp: grp, rev:0, ban_ra:0, tra:0, spend:0, don:0};
+        
+        // Nếu kênh của dự án này hoàn toàn trống số liệu thì bỏ qua
+        if (c.rev === 0 && c.spend === 0 && p.rev === 0 && p.spend === 0 && c.tra === 0 && p.tra === 0) continue;
+        
+        let pct = totalChRevCur > 0 ? (c.rev / totalChRevCur * 100).toFixed(1) : 0;
+        let roas = c.spend > 0 ? (c.rev / c.spend).toFixed(1) : '—';
+        let cpo  = (c.spend>0&&c.don>0) ? fmtNum(Math.round(c.spend/c.don)) : '—';
+        let hPct = (c.ban_ra+c.tra)>0 ? (c.tra/(c.ban_ra+c.tra)*100).toFixed(1)+'%' : '0%';
+        let projColor = c.proj === 'Gunze' ? 'var(--gunze)' : 'var(--mp)';
+        let roasCls = roas==='—'?'color:var(--tx3)':parseFloat(roas)>=4?'color:var(--acc2);font-weight:700':parseFloat(roas)>=2.5?'color:var(--warn)':'color:var(--danger);font-weight:700';
+        
+        allRows.push(`<tr><td style="font-weight:700;color:var(--tx)">${grp}</td><td><span style="font-size:9px;padding:1px 6px;border-radius:3px;background:${c.proj==='Gunze'?'rgba(79,124,255,0.15)':'rgba(56,224,176,0.15)'};color:${projColor}">${c.proj}</span></td><td><div style="display:flex;align-items:center;gap:5px;justify-content:flex-end;"><div style="width:40px;background:var(--bdr);height:4px;border-radius:2px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${projColor};"></div></div><span style="font-size:10px;color:${projColor};font-weight:700;min-width:28px;">${pct}%</span></div></td><td style="color:var(--tx);font-weight:700;">${fmtNum(c.rev)}</td><td style="color:var(--tx2);">${fmtNum(p.rev)}</td><td style="font-weight:700;${momStr(c.rev,p.rev).cls}">${momStr(c.rev,p.rev).str}</td><td style="color:${parseFloat(hPct)>20?'var(--danger)':parseFloat(hPct)>12?'var(--warn)':'var(--acc2)'}">${hPct}</td><td style="color:var(--gunze);">${c.spend>0?fmtNum(c.spend):'—'}</td><td style="color:var(--tx2);">${p.spend>0?fmtNum(p.spend):'—'}</td><td style="font-weight:700;${momStr(c.spend,p.spend).cls}">${momStr(c.spend,p.spend).str}</td><td style="${roasCls}">${roas}</td><td style="color:var(--warn);">${cpo}</td></tr>`);
+      }
+    }
+    channelTbody.innerHTML = allRows.join('') || '<tr><td colspan="12" style="text-align:center;color:var(--tx3);padding:10px;">Không có dữ liệu kênh</td></tr>';
+ 
+  const regionTbody = document.getElementById('main-region-tbody');
+  if (regionTbody) {
+    const projectList = filter === 'All' ? ['Gunze', 'MP'] : [filter];
+    const regions = ['HN', 'HCM', 'Other'];
+    let rows = [];
+    for (let region of regions) {
+      for (let proj of projectList) {
+        let curRev  = sapCur.regionRev?.[region]?.[proj]  || 0;
+        let prevRev = sapPrev.regionRev?.[region]?.[proj] || 0;
+        if (curRev === 0 && prevRev === 0) continue;
+        let mom = (prevRev>0) ? ((curRev-prevRev)/prevRev*100).toFixed(1) : null;
+        let momStr2 = mom !== null ? `<span style="color:${parseFloat(mom)>=0?'var(--acc2)':'var(--danger)'};font-weight:700">${parseFloat(mom)>=0?'+':''}${mom}%</span>` : '—';
+        let pct = sapCur.totalRev > 0 ? ((curRev / sapCur.totalRev)*100).toFixed(1) : 0;
+        let projColor = proj==='Gunze'?'var(--gunze)':'var(--mp)';
+        let regionLabel = region === 'Other' ? 'Khác' : region;
+        rows.push(`<tr><td style="font-weight:700;color:var(--tx)">${regionLabel} — <span style="color:${projColor}">${proj}</span></td><td style="color:${projColor};font-weight:700;">${fmtNum(curRev)}</td><td style="color:var(--tx2);">${fmtNum(prevRev)}</td><td>${momStr2}</td><td><div style="display:flex;align-items:center;gap:5px;justify-content:flex-end;"><div style="width:40px;background:var(--bdr);height:4px;border-radius:2px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${projColor};"></div></div><span style="font-size:10px;color:${projColor};font-weight:600;">${pct}%</span></div></td></tr>`);
+      }
+    }
+    regionTbody.innerHTML = rows.join('') || '<tr><td colspan="5" style="color:var(--tx3);text-align:center;padding:10px">Không có dữ liệu khu vực (cần cột Tỉnh/Thành phố trong Sapo)</td></tr>';
+  }
+  }
+}
+ 
+function renderMainTopList(container, sortKey) {
+  const listEnc = container.getAttribute('data-list-sp');
+  const total   = parseFloat(container.getAttribute('data-total-sp')) || 1;
+  if (!listEnc) return;
+  const list = JSON.parse(decodeURIComponent(listEnc));
+  list.sort((a,b) => b[sortKey] - a[sortKey]);
+
+  const momStr = (cur, prev) => {
+    if (!prev || prev === 0) return { str: '—', cls: 'color:var(--tx3)' };
+    let pct = ((cur - prev) / prev * 100).toFixed(1);
+    return { str: (parseFloat(pct) >= 0 ? '+' : '') + pct + '%', cls: parseFloat(pct) >= 0 ? 'color:var(--acc2)' : 'color:var(--danger)' };
+  };
+
+  container.innerHTML = list.slice(0,10).map((p, i) => {
+    let pct = ((p.curRev / total) * 100).toFixed(1);
+    let col = p.project === 'Gunze' ? 'var(--gunze)' : p.project === 'MP' ? 'var(--mp)' : 'var(--acc2)';
+    let rank = i===0?'🥇':i===1?'🥈':i===2?'🥉':`<span style="display:inline-block;width:18px;text-align:center;color:var(--tx3);font-size:10px;">${i+1}</span>`;
+    let mom = momStr(p.curRev, p.prevRev);
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:rgba(255,255,255,0.015);border:1px solid rgba(255,255,255,0.05);border-radius:5px;">
+      <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+        <span style="font-size:13px;">${rank}</span>
+        <div style="display:flex;flex-direction:column;gap:2px;overflow:hidden;">
+            <span style="font-size:11px;color:${col};font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${p.name}">${p.name}</span>
+            <span style="font-size:9px;color:var(--tx3);">TT: ${fmtNum(p.prevRev)} ₫</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;margin-left:8px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-weight:700;font-size:10px;${mom.cls}">${mom.str}</span>
+            <span style="color:${col};font-weight:700;font-size:11px;">${fmtNum(p.curRev)} ₫</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;margin-top:2px;">
+          <span style="color:var(--tx3);font-size:9px;">${p.curQty} SP</span>
+          <div style="width:30px;background:var(--bdr);height:3px;border-radius:2px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:${col};"></div></div>
+          <span style="color:var(--tx3);font-size:9px;">${pct}%</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+ 
+function changeMainTopSort(btn, type, sortKey) {
+  const container = btn.closest('.top-box');
+  container.querySelectorAll('button').forEach(b => { b.style.borderColor='var(--tx3)'; b.style.background='transparent'; b.style.color='var(--tx2)'; });
+  btn.style.borderColor = 'var(--acc2)'; btn.style.background = 'rgba(56,224,176,0.1)'; btn.style.color = 'var(--acc2)';
+  const listEl = container.querySelector('.main-top-list');
+  if (listEl) renderMainTopList(listEl, sortKey);
+}
+ 
+function injectMainAiEval(parsedAi) {
+  const renderList = (arr) => Array.isArray(arr) ? arr.map(i=>`<li>${i}</li>`).join('') : `<li>${arr||'—'}</li>`;
+  const ids = ['main-ai-eval-sp','main-ai-eval-hoan','main-ai-eval-kenh','main-ai-eval-compare','main-ai-eval-ketluan'];
+  const keys= ['eval_sp','eval_hoan','eval_kenh','eval_compare','ket_luan'];
+  ids.forEach((id, i) => { const el = document.getElementById(id); if (el) el.innerHTML = renderList(parsedAi[keys[i]]); });
+}
+ 
+async function applyMainDbFilter(filter) {
+  window.currentMainViewFilter = filter;
+  if (!window.mainDbCache || !window.mainDbCache[filter]) return;
+  renderMainDbView(filter);
+ 
+  const cache = window.mainDbCache[filter];
+  if (cache.parsedAi) { injectMainAiEval(cache.parsedAi); return; }
+ 
+  const ids = ['main-ai-eval-sp','main-ai-eval-hoan','main-ai-eval-kenh','main-ai-eval-compare','main-ai-eval-ketluan'];
+  ids.forEach(id => { const el = document.getElementById(id); if(el) el.innerHTML = '<li><span style="color:var(--warn)">⏳ AI đang phân tích...</span></li>'; });
+ 
+  try {
+    const rawText = buildMainRawText(cache.sapCur, cache.sapPrev);
+    const url = getApiUrl();
+    const sysPrompt = `Bạn là Chuyên gia Phân tích Marketing. Dữ liệu Dashboard chỉ cho dự án [${filter}]:\n${rawText}\n\nPhân tích chuyên sâu cho dự án này:\n1. "eval_sp": Cơ cấu Sản phẩm/Thương hiệu.\n2. "eval_hoan": Tỷ lệ hoàn trả.\n3. "eval_kenh": Hiệu quả Kênh.\n4. "eval_compare": So sánh với tháng trước / điểm đáng chú ý.\n5. "ket_luan": Đề xuất hành động (2-3 ý).\nTrả về JSON thuần: {"eval_sp":["..."],"eval_hoan":["..."],"eval_kenh":["..."],"eval_compare":["..."],"ket_luan":["..."]}`;
+    const res = await fetchWithRetry(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ contents:[{parts:[{text:sysPrompt}]}], generationConfig:{responseMimeType:'application/json',temperature:0.3} }) });
+    const d = await res.json();
+    let raw = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    let fi=raw.indexOf('{'), li=raw.lastIndexOf('}');
+    if(fi!==-1&&li!==-1) raw=raw.substring(fi,li+1);
+    const parsedAi = JSON.parse(raw);
+    cache.parsedAi = parsedAi;
+    if (window.currentMainViewFilter === filter) injectMainAiEval(parsedAi);
+  } catch(e) {
+    const errHtml = `<li><span style="color:var(--danger)">❌ Lỗi AI: ${e.message}</span></li>`;
+    ids.forEach(id => { const el = document.getElementById(id); if(el) el.innerHTML = errHtml; });
+  }
+}
+ 
+function doCopyMainDbText() {
+  const el = document.getElementById('main-db-text-report');
+  if (!el) return;
+  const text = el.innerText;
+  const btn = document.getElementById('main-db-copy-btn') || document.querySelector('button[onclick="doCopyMainDbText()"]');
+  navigator.clipboard.writeText(text).then(() => {
+    if(btn){btn.textContent='✓ Đã Copy';setTimeout(()=>btn.textContent='⎘ Copy Report',2000);}
+  }).catch(() => {
+    const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    if(btn){btn.textContent='✓ Đã Copy';setTimeout(()=>btn.textContent='⎘ Copy Report',2000);}
+  });
+}
 </script>
   <template id="tpl-mc">
   <div class="mc">
@@ -3590,12 +4257,15 @@ function getAiPersonaPrompt() {
       <div style="overflow-x:auto;">
         <table class="stbl" style="margin-bottom:0;">
           <thead><tr>
-            <th style="text-align:left;">Nhóm SP</th>
-            <th>Số hoàn</th>
-            <th>Tổng bán</th>
-            <th>Tỷ lệ hoàn</th>
-            <th>Tháng trước</th>
-          </tr></thead>
+          <th class="sortable" onclick="sortHtmlTable(this,0)" style="text-align:left;">Nhóm SP ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,1)">Dự án ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,2)">Hoàn HT ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,3)">Bán HT ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,4)">Tỷ lệ hoàn (HT) ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,5)">Hoàn TT ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,6)">Bán TT ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,7)">Tỷ lệ hoàn (TT) ↕</th>
+        </tr></thead>
           <tbody id="hoan-tbody"></tbody>
         </table>
       </div>
@@ -3607,15 +4277,19 @@ function getAiPersonaPrompt() {
       <div style="overflow-x:auto;">
         <table class="stbl" style="margin-bottom:0;">
           <thead><tr>
-            <th style="text-align:left;">Kênh</th>
-            <th>% DT</th>
-            <th>Doanh thu</th>
-            <th>Số đơn</th>
-            <th>% Hoàn</th>
-            <th>Chi tiêu</th>
-            <th>ROAS</th>
-            <th>CPO</th>
-          </tr></thead>
+          <th class="sortable" onclick="sortHtmlTable(this,0)" style="text-align:left;">Kênh ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,1)">Dự án ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,2)">% DT ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,3)">DT Hiện tại ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,4)">DT Tháng trước ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,5)">MoM DT ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,6)">% Hoàn ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,7)">Chi tiêu HT ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,8)">Chi tiêu TT ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,9)">MoM CP ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,10)">ROAS ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,11)">CPO ↕</th>
+        </tr></thead>
           <tbody id="channel-tbody"></tbody>
         </table>
       </div>
@@ -3702,6 +4376,195 @@ function getAiPersonaPrompt() {
     </div>
   </div>
   <div class="fs-content" id="fs-content-area"></div>
-</div>          
+</div>
+<template id="tpl-main-dashboard-layout">
+<div class="report" id="rpt" style="max-width:980px;">
+  <div class="rh" style="border-bottom-color:var(--gunze);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+    <div>
+      <div class="rweek" style="color:var(--gunze);">DASHBOARD CHUYÊN SÂU</div>
+      <div class="rtitle" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        Phân Tích Gunze & Mỹ Phẩm
+        <select id="main-db-filter" onchange="applyMainDbFilter(this.value)"
+          style="padding:6px 12px;border-radius:8px;border:1px solid var(--gunze);background:var(--sur2);color:var(--gunze);font-family:'Inter',sans-serif;font-weight:700;font-size:13px;outline:none;cursor:pointer;">
+          <option value="All">🌟 Tất Cả (Gunze + MP)</option>
+          <option value="Gunze">🔵 Chỉ Xem: Gunze</option>
+          <option value="MP">🟢 Chỉ Xem: Mỹ Phẩm</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn-copy" style="border-color:var(--gunze);color:var(--gunze);" onclick="doCopyMainDbText()">⎘ Copy Report</button>
+  </div>
+ 
+  <div style="font-size:11px;color:var(--tx3);margin-bottom:20px;font-style:italic;">*Bấm vào tiêu đề cột (↕) để sắp xếp. Chọn filter để lọc theo dự án.</div>
+ 
+  <div class="pb" style="border-color:var(--warn);margin-bottom:20px;">
+    <div class="phdr" style="background:rgba(255,188,87,0.05);border-bottom-color:var(--warn);">
+      <div class="pdot" style="background:var(--warn)"></div>
+      <div class="pname" style="color:var(--warn)">⚖️ So Sánh Tổng Quan: Gunze vs Mỹ Phẩm</div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="stbl" style="margin-bottom:0;">
+        <thead><tr>
+          <th style="text-align:left;">Chỉ số</th>
+          <th style="color:var(--gunze);">Gunze</th>
+          <th style="color:var(--mp);">Mỹ Phẩm</th>
+          <th>Tổng</th>
+          <th>MoM Gunze</th>
+          <th>MoM MP</th>
+        </tr></thead>
+        <tbody id="main-compare-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+ 
+  <div class="pb" style="border-color:var(--acc);margin-bottom:20px;">
+    <div class="phdr" style="background:rgba(79,124,255,0.05);border-bottom-color:var(--acc);">
+      <div class="pdot" style="background:var(--acc)"></div>
+      <div class="pname" style="color:var(--acc)">📈 Xu Hướng Doanh Thu Theo Ngày</div>
+      <div style="display:flex;gap:8px;margin-left:auto;align-items:center;">
+        <span style="font-size:10px;color:var(--gunze);">● Gunze</span>
+        <span style="font-size:10px;color:var(--mp);">● Mỹ Phẩm</span>
+      </div>
+    </div>
+    <div id="main-daily-chart-container" style="padding:16px 18px;"></div>
+  </div>
+ 
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:15px;margin-bottom:20px;">
+    <div class="top-box" style="background:var(--sur);padding:15px;border:1px solid var(--bdr);border-radius:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid var(--bdr);padding-bottom:10px;">
+        <div style="font-size:11px;font-weight:700;color:var(--acc2);">🏆 TOP 10 SẢN PHẨM</div>
+        <div style="display:flex;gap:4px;">
+          <button style="font-size:9px;padding:2px 7px;border-radius:4px;border:1px solid var(--acc2);background:rgba(56,224,176,0.1);color:var(--acc2);cursor:pointer;font-weight:600;" onclick="changeMainTopSort(this,'sp','curRev')">DT Hiện tại</button>
+          <button style="font-size:9px;padding:2px 7px;border-radius:4px;border:1px solid var(--tx3);background:transparent;color:var(--tx2);cursor:pointer;font-weight:600;" onclick="changeMainTopSort(this,'sp','curQty')">SL Hiện tại</button>
+        </div>
+      </div>
+      <div id="main-top-sp" class="main-top-list" data-type="sp" style="display:flex;flex-direction:column;gap:5px;min-height:80px;"></div>
+    </div>
+    <div class="top-box" style="background:var(--sur);padding:15px;border:1px solid var(--bdr);border-radius:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid var(--bdr);padding-bottom:10px;">
+        <div style="font-size:11px;font-weight:700;color:var(--gunze);">🏷️ TOP THƯƠNG HIỆU</div>
+        <div style="display:flex;gap:4px;">
+          <button style="font-size:9px;padding:2px 7px;border-radius:4px;border:1px solid var(--acc2);background:rgba(56,224,176,0.1);color:var(--acc2);cursor:pointer;font-weight:600;" onclick="changeMainTopSort(this,'brand','curRev')">DT Hiện tại</button>
+        </div>
+      </div>
+      <div id="main-top-brand" class="main-top-list" data-type="brand" style="display:flex;flex-direction:column;gap:5px;min-height:80px;"></div>
+    </div>
+    <div class="top-box" style="background:var(--sur);padding:15px;border:1px solid var(--bdr);border-radius:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid var(--bdr);padding-bottom:10px;">
+        <div style="font-size:11px;font-weight:700;color:var(--mp);">📦 TOP LOẠI SẢN PHẨM</div>
+        <div style="display:flex;gap:4px;">
+          <button style="font-size:9px;padding:2px 7px;border-radius:4px;border:1px solid var(--acc2);background:rgba(56,224,176,0.1);color:var(--acc2);cursor:pointer;font-weight:600;" onclick="changeMainTopSort(this,'cat','curRev')">DT Hiện tại</button>
+        </div>
+      </div>
+      <div id="main-top-cattype" class="main-top-list" data-type="cat" style="display:flex;flex-direction:column;gap:5px;min-height:80px;"></div>
+    </div>
+  </div>
+ 
+  <div class="pb" style="margin-bottom:20px;">
+    <div class="phdr"><div class="pdot" style="background:var(--gunze)"></div><div class="pname" style="color:var(--gunze)">🏷️ Hiệu Quả Theo Nhãn Hiệu (Brand)</div></div>
+    <div style="overflow-x:auto;">
+      <table class="stbl" style="margin-bottom:0;">
+        <thead><tr>
+          <th class="sortable" onclick="sortHtmlTable(this,0)" style="text-align:left;">Nhãn hiệu ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,1)">Dự án ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,2)">% DT ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,3)">DT Hiện tại ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,4)">DT Tháng trước ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,5)">MoM ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,6)">Số lượng SP ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,7)">% Hoàn HT ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,8)">% Hoàn TT ↕</th>
+        </tr></thead>
+        <tbody id="main-brand-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="pb" style="margin-bottom:20px;">
+    <div class="phdr">
+      <div class="pdot" style="background:var(--danger)"></div>
+      <div class="pname" style="color:var(--danger)">🔄 Tỷ Lệ Hoàn Trả Theo Nhóm SP</div>
+    </div>
+    <div id="main-hoan-alert-box" style="display:none;margin:10px 15px;padding:8px 12px;background:rgba(255,95,126,0.1);border:1px solid var(--danger);border-radius:6px;font-size:11px;color:var(--danger);font-weight:600;"></div>
+    <div id="main-hoan-ok-box" style="display:none;margin:10px 15px;padding:8px 12px;background:rgba(56,224,176,0.1);border:1px solid var(--acc2);border-radius:6px;font-size:11px;color:var(--acc2);font-weight:600;">✓ Tỷ lệ hoàn trả trong ngưỡng an toàn</div>
+    <div style="overflow-x:auto;">
+      <table class="stbl" style="margin-bottom:0;">
+        <thead><tr>
+          <th class="sortable" onclick="sortHtmlTable(this,0)" style="text-align:left;">Nhóm SP ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,1)">Dự án ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,2)">Hoàn HT ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,3)">Bán HT ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,4)">Tỷ lệ hoàn (HT) ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,5)">Hoàn TT ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,6)">Bán TT ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,7)">Tỷ lệ hoàn (TT) ↕</th>
+        </tr></thead>
+        <tbody id="main-hoan-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+ 
+  <div class="pb" style="margin-bottom:20px;">
+    <div class="phdr">
+      <div class="pdot" style="background:var(--acc2)"></div>
+      <div class="pname" style="color:var(--acc2)">📡 Hiệu Quả Theo Kênh Bán Hàng</div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="stbl" style="margin-bottom:0;">
+        <thead><tr>
+          <th class="sortable" onclick="sortHtmlTable(this,0)" style="text-align:left;">Kênh ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,1)">Dự án ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,2)">% DT ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,3)">DT Hiện tại ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,4)">DT Tháng trước ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,5)">MoM DT ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,6)">% Hoàn ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,7)">Chi tiêu HT ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,8)">Chi tiêu TT ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,9)">MoM CP ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,10)">ROAS ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,11)">CPO ↕</th>
+        </tr></thead>
+        <tbody id="main-channel-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+ 
+  <div class="pb" style="margin-bottom:20px;">
+    <div class="phdr">
+      <div class="pdot" style="background:var(--warn)"></div>
+      <div class="pname" style="color:var(--warn)">🏪 Phân Tích Khu Vực: HN vs HCM</div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="stbl" style="margin-bottom:0;">
+        <thead><tr>
+          <th style="text-align:left;">Khu vực / Dự án</th>
+          <th class="sortable" onclick="sortHtmlTable(this,1)">DT Hiện tại ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,2)">DT Tháng trước ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,3)">MoM ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,4)">% Tổng ↕</th>
+        </tr></thead>
+        <tbody id="main-region-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+ 
+  <div class="pb" style="margin-bottom:20px;">
+    <div class="phdr">
+      <div class="pdot" style="background:var(--warn)"></div>
+      <div class="pname" style="color:var(--warn)">🤖 Đánh Giá & Đề Xuất từ AI</div>
+    </div>
+    <div class="analysis-box" style="border-radius:0 0 12px 12px;margin-bottom:0;">
+      <div style="margin-bottom:12px;"><strong style="color:var(--gunze)">Cơ cấu Sản phẩm:</strong><ul id="main-ai-eval-sp" class="eval-list" style="margin-top:6px;"></ul></div>
+      <div style="margin-bottom:12px;"><strong style="color:var(--danger)">Tỷ lệ Hoàn trả:</strong><ul id="main-ai-eval-hoan" class="eval-list" style="margin-top:6px;"></ul></div>
+      <div style="margin-bottom:12px;"><strong style="color:var(--acc2)">Hiệu quả Kênh:</strong><ul id="main-ai-eval-kenh" class="eval-list" style="margin-top:6px;"></ul></div>
+      <div style="margin-bottom:12px;"><strong style="color:var(--warn)">So sánh Gunze vs MP:</strong><ul id="main-ai-eval-compare" class="eval-list" style="margin-top:6px;"></ul></div>
+      <div style="border-top:1px solid var(--bdr);padding-top:12px;margin-top:4px;"><strong style="color:var(--warn)">Kết luận chiến lược:</strong><ul id="main-ai-eval-ketluan" class="eval-list" style="margin-top:6px;"></ul></div>
+    </div>
+  </div>
+ 
+  <div id="main-db-text-report" style="display:none;"></div>
+</div>
+</template>
 </body>
 </html>
