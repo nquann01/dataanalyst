@@ -595,6 +595,16 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
 
         <div id="tab-kosu-dashboard" class="d-none">
           <div class="sec-lbl" style="color:var(--acc2);">Dashboard Phân Tích Sản Phẩm (Kosu)</div>
+          <div class="meta-row" style="grid-template-columns: 1fr 1fr; margin-top: 10px;">
+    <div>
+        <label style="font-size: 10px; color: var(--tx3); font-weight: bold; margin-bottom: 4px; display: block;">💰 Chi tiêu HN (Nhập tay)</label>
+        <input id="manual-spend-hn-k" type="text" placeholder="VD: 15.000.000">
+    </div>
+    <div>
+        <label style="font-size: 10px; color: var(--tx3); font-weight: bold; margin-bottom: 4px; display: block;">💰 Chi tiêu HCM (Nhập tay)</label>
+        <input id="manual-spend-hcm-k" type="text" placeholder="VD: 10.000.000">
+    </div>
+</div>
 
           <div class="iblock" style="border-color: var(--tx);">
             <div class="iblock-hdr">
@@ -2393,6 +2403,9 @@ Trả về JSON thuần tuân thủ nghiêm ngặt cấu trúc sau:
         const sapoPrevData = await parseCSVAsync(dbFiles.sapo_prev);
         const adsCurData = await parseCSVAsync(dbFiles.ads_cur);
         const adsPrevData = await parseCSVAsync(dbFiles.ads_prev);
+        // LẤY SỐ CHI TIÊU NHẬP TAY TỪ GIAO DIỆN
+const manualSpendHN = document.getElementById('manual-spend-hn-k') ? parseAnyNum(document.getElementById('manual-spend-hn-k').value) : 0;
+const manualSpendHCM = document.getElementById('manual-spend-hcm-k') ? parseAnyNum(document.getElementById('manual-spend-hcm-k').value) : 0;
 
         const NHAN_SU_CFG = {
           'AnhVV':     { sapoSrc: ['Page LVS','Page NVL','Web AnhVV','LDP LVS','LDP NVL'],   adsKeys: ['anhvv','lvs:','nvl:'],                       color: '#4f7cff' },
@@ -2408,7 +2421,7 @@ Trả về JSON thuần tuân thủ nghiêm ngặt cấu trúc sau:
         for (const [p, cfg] of Object.entries(NHAN_SU_CFG)) cfg.sapoSrc.forEach(s => srcToNS[s] = p);
 
         const processSapo = (dataArr, filterPerson) => {
-          let res = { cats: {}, topSp: {}, totalRev: 0, nhanSu: {}, dailyMap: {}, srcMap: {}, pageStats: {} };
+          let res = { cats: {}, topSp: {}, totalRev: 0, nhanSu: {}, dailyMap: {}, srcMap: {}, pageStats: {}, regions: { HN: {rev:0, ban_ra:0, tra:0, spend:0}, HCM: {rev:0, ban_ra:0, tra:0, spend:0}, Other: {rev:0, ban_ra:0, tra:0, spend:0} } };
           if(!dataArr.length || !dataArr[0]) return res;
           let hd = dataArr[0].map(h => (h||'').normalize('NFC').toLowerCase().replace(/[\u200B-\u200D\uFEFF]/g,'').trim());
           let nameIdx = hd.findIndex(h => h.includes('tên sản phẩm'));
@@ -2419,6 +2432,7 @@ Trả về JSON thuần tuân thủ nghiêm ngặt cấu trúc sau:
           let catIdx  = hd.findIndex(h => h.includes('loại sản phẩm') || h.includes('nhóm sản phẩm') || h.includes('nhóm'));
           let srcIdx  = hd.findIndex(h => h.includes('nguồn'));
           let dateIdx = hd.findIndex(h => h === 'ngày' || h.includes('ngày'));
+          let cityIdx = hd.findIndex(h => h.includes('tỉnh/thành phố') || h.includes('tỉnh') || h.includes('thành phố')); // THÊM DÒNG NÀY
 
           if(nameIdx === -1 || revIdx === -1) return res;
 
@@ -2430,6 +2444,7 @@ Trả về JSON thuần tuân thủ nghiêm ngặt cấu trúc sau:
             let tra    = traIdx   !== -1 ? parseAnyNum(dataArr[i][traIdx])   : 0;
             let src    = srcIdx   !== -1 ? (dataArr[i][srcIdx]||'').trim()   : '';
             let d2     = dateIdx  !== -1 ? (dataArr[i][dateIdx]||'').trim()  : '';
+            let city   = cityIdx  !== -1 ? (dataArr[i][cityIdx]||'').trim().toLowerCase() : ''; // THÊM DÒNG NÀY
 
             if (src.toLowerCase().includes("park hill")) src = src.replace(/park hill/gi, "Times city");
 
@@ -2482,7 +2497,17 @@ Trả về JSON thuần tuân thủ nghiêm ngặt cấu trúc sau:
             else if (rawCat.includes('sandal cao gót'))                                       catName = 'Sandal cao gót';
             else if (rawCat.includes('dép cao gót'))                                          catName = 'Dép cao gót';
             else if (rawCat.includes('boot')||rawCat.includes('bốt'))                        catName = 'Boot';
+            // THÊM ĐOẠN NÀY ĐỂ CỘNG DỒN VÙNG MIỀN
+            let normalizedCity = city.replace(/\s+/g, ' ');
+            let region = 'Other';
+            if (normalizedCity.includes("hà nội") || normalizedCity.includes("ha noi") || normalizedCity === "hn") region = 'HN';
+            else if (normalizedCity.includes("hồ chí minh") || normalizedCity.includes("ho chi minh") || normalizedCity === "hcm") region = 'HCM';
 
+            res.regions[region].rev += rev;
+            res.regions[region].ban_ra += banRa;
+            res.regions[region].tra += tra;
+              // KẾT THÚC THÊM
+            
             if(!res.cats[catName]) res.cats[catName] = { rev:0, qty:0, spend:0, ban_ra:0, tra:0 };
             res.cats[catName].rev    += rev;
             res.cats[catName].qty    += qty;
@@ -2567,6 +2592,13 @@ Trả về JSON thuần tuân thủ nghiêm ngặt cấu trúc sau:
             }
 
             if (filterPerson !== 'All' && campPerson !== filterPerson) continue;
+            let regLoc = null;
+            let cL = campName.toLowerCase();
+            if (cL.includes('lvs') || cL.includes('nvl') || cL.includes('ntt')) regLoc = 'HCM';
+            else if (cL.includes('đq') || cL.includes('dq') || cL.includes('ngđ') || cL.includes('ngd') || cL.includes('mđ') || cL.includes('md') || cL.includes('mỹ đình') || cL.includes('my dinh') || cL.includes('tđn') || cL.includes('tdn') || cL.includes('th:') || cL.includes('th ') || cL.includes('th -') || cL.includes('hbt') || cL.includes('time') || cL.includes('park hill')) regLoc = 'HN';
+
+            if (regLoc) sapoStats.regions[regLoc].spend += spend;
+            else sapoStats.unallocatedSpend += spend;
 
             let chGrp = 'Page Phụ';
             if (isLivestream) chGrp = 'Livestream';
@@ -2598,6 +2630,13 @@ Trả về JSON thuần tuân thủ nghiêm ngặt cấu trúc sau:
           distribute('Cao gót',['Giày cao gót','Sandal cao gót','Dép cao gót']);
           distribute('GĐB',    ['Giày đế bệt']);
           distribute('Boot',   ['Boot']);
+
+          if (sapoStats.unallocatedSpend > 0) {
+              let totRev = (sapoStats.regions.HN.rev + sapoStats.regions.HCM.rev + sapoStats.regions.Other.rev) || 1;
+              sapoStats.regions.HN.spend += sapoStats.unallocatedSpend * (sapoStats.regions.HN.rev / totRev);
+              sapoStats.regions.HCM.spend += sapoStats.unallocatedSpend * (sapoStats.regions.HCM.rev / totRev);
+              sapoStats.regions.Other.spend += sapoStats.unallocatedSpend * (sapoStats.regions.Other.rev / totRev);
+          }
         };
 
         window.kosuDbCache = {};
@@ -2643,11 +2682,21 @@ Trả về JSON thuần tuân thủ nghiêm ngặt cấu trúc sau:
                 let hoanPct = totalBan > 0 ? (c.tra / totalBan * 100).toFixed(1) : '0.0';
                 let prevHoan= prevTot > 0 ? (prevC.tra/prevTot*100).toFixed(1) : '—';
 
-                if(totalBan > 0) {
+                // Nếu tháng này hoặc tháng trước có bán/hoàn thì mới hiển thị
+                if(totalBan > 0 || prevTot > 0) {
                     let hCls = parseFloat(hoanPct)>20?'color:var(--danger);font-weight:700':parseFloat(hoanPct)>12?'color:var(--warn);font-weight:600':'color:var(--acc2);font-weight:600';
                     let barCol = parseFloat(hoanPct)>20?'var(--danger)':parseFloat(hoanPct)>12?'var(--warn)':'var(--acc2)';
                     if(parseFloat(hoanPct) > 20) hoanAlert.push(`${cat}: ${hoanPct}%`);
-                    hoanRows += `<tr><td style="text-align:left;font-weight:700;color:var(--tx)">${cat}</td><td style="color:var(--tx2)">${c.tra||0}</td><td style="color:var(--tx2)">${totalBan}</td><td><div style="display:flex;align-items:center;gap:6px;justify-content:flex-end;"><div style="width:60px;background:var(--bdr);height:5px;border-radius:3px;overflow:hidden;"><div style="width:${Math.min(parseFloat(hoanPct)*3, 100)}%;height:100%;background:${barCol};"></div></div><span style="${hCls};min-width:36px">${hoanPct}%</span></div></td><td style="color:var(--tx2);font-size:10px">${prevHoan==='—'?'—':prevHoan+'%'}</td></tr>`;
+                    
+                    hoanRows += `<tr>
+                        <td style="text-align:left;font-weight:700;color:var(--tx)">${cat}</td>
+                        <td style="color:var(--tx);font-weight:600;">${c.tra||0}</td>
+                        <td style="color:var(--tx);">${totalBan}</td>
+                        <td><div style="display:flex;align-items:center;gap:6px;justify-content:flex-end;"><div style="width:50px;background:var(--bdr);height:4px;border-radius:2px;overflow:hidden;"><div style="width:${Math.min(parseFloat(hoanPct)*3, 100)}%;height:100%;background:${barCol};"></div></div><span style="${hCls};font-size:10px;min-width:32px">${hoanPct}%</span></div></td>
+                        <td style="color:var(--tx2);font-size:10px;">${prevC.tra||0}</td>
+                        <td style="color:var(--tx2);font-size:10px;">${prevTot}</td>
+                        <td style="color:var(--tx2);font-size:10px;">${prevHoan==='—'?'—':prevHoan+'%'}</td>
+                    </tr>`;
                 }
                 
                 let mRev = momStr(curRev, prevRev); let mSpend = (cat !== 'Khác' && prevSpend>0) ? momStr(curSpend, prevSpend) : {str:'—',cls:'color:var(--tx3)'};
@@ -2678,27 +2727,46 @@ Trả về JSON thuần tuân thủ nghiêm ngặt cấu trúc sau:
             });
 
             const CHANNEL_GROUP = { 'Page Chính (JPS)': src => src === 'Facebook', 'Livestream': src => src.toLowerCase().includes('livestream') || src.toLowerCase() === 'web live', 'Web': src => src.toLowerCase().includes('web') && src.toLowerCase() !== 'web live' && !src.toLowerCase().includes('ldp'), 'LDP': src => src.toLowerCase().includes('ldp'), 'Zalo': src => src.toLowerCase().includes('zalo'), 'CSL': src => src.toLowerCase() === 'csl', 'Page Phụ': src => src.toLowerCase().includes('page') && !src.toLowerCase().includes('web fanpage') };
-            let chStats = {};
-            for(const [s, v] of Object.entries(sapCur.srcMap)) {
+            
+            let chStats = {}; // Tháng hiện tại
+            let chStatsPrv = {}; // Tháng trước
+            
+            // Xử lý Sapo hiện tại
+            for(const [s, v] of Object.entries(sapCur.srcMap || {})) {
                 let grp = 'Khác';
                 if(CHANNEL_GROUP['Page Chính (JPS)'](s)) grp = 'Page Chính (JPS)'; else if(CHANNEL_GROUP['Livestream'](s)) grp = 'Livestream'; else if(CHANNEL_GROUP['Zalo'](s)) grp = 'Zalo'; else if(CHANNEL_GROUP['CSL'](s)) grp = 'CSL'; else if(CHANNEL_GROUP['LDP'](s)) grp = 'LDP'; else if(CHANNEL_GROUP['Web'](s)) grp = 'Web'; else if(CHANNEL_GROUP['Page Phụ'](s)) grp = 'Page Phụ';
                 if(!chStats[grp]) chStats[grp] = { rev:0, ban_ra:0, tra:0, spend:0, don:0 };
                 chStats[grp].rev += v.rev; chStats[grp].ban_ra += v.ban_ra||0; chStats[grp].tra += v.tra; chStats[grp].don += v.don||0;
             }
             if(sapCur.channelSpends) { for(const [k, v] of Object.entries(sapCur.channelSpends)) { if(!chStats[k]) chStats[k] = { rev:0, ban_ra:0, tra:0, spend:0, don:0 }; chStats[k].spend += v; } }
+            
+            // Xử lý Sapo tháng trước
+            for(const [s, v] of Object.entries(sapPrv.srcMap || {})) {
+                let grp = 'Khác';
+                if(CHANNEL_GROUP['Page Chính (JPS)'](s)) grp = 'Page Chính (JPS)'; else if(CHANNEL_GROUP['Livestream'](s)) grp = 'Livestream'; else if(CHANNEL_GROUP['Zalo'](s)) grp = 'Zalo'; else if(CHANNEL_GROUP['CSL'](s)) grp = 'CSL'; else if(CHANNEL_GROUP['LDP'](s)) grp = 'LDP'; else if(CHANNEL_GROUP['Web'](s)) grp = 'Web'; else if(CHANNEL_GROUP['Page Phụ'](s)) grp = 'Page Phụ';
+                if(!chStatsPrv[grp]) chStatsPrv[grp] = { rev:0, ban_ra:0, tra:0, spend:0, don:0 };
+                chStatsPrv[grp].rev += v.rev; chStatsPrv[grp].ban_ra += v.ban_ra||0; chStatsPrv[grp].tra += v.tra; chStatsPrv[grp].don += v.don||0;
+            }
+            if(sapPrv.channelSpends) { for(const [k, v] of Object.entries(sapPrv.channelSpends)) { if(!chStatsPrv[k]) chStatsPrv[k] = { rev:0, ban_ra:0, tra:0, spend:0, don:0 }; chStatsPrv[k].spend += v; } }
+
             let channelRows = ''; let totalChRev = Object.values(chStats).reduce((s,v)=>s+(v.rev||0),0);
             ['Page Phụ','Page Chính (JPS)','Web','LDP','Livestream','Zalo','CSL','Khác'].forEach(grp => {
-                if(!chStats[grp]) return; let c = chStats[grp];
+                let c = chStats[grp] || { rev:0, ban_ra:0, tra:0, spend:0, don:0 };
+                let p_data = chStatsPrv[grp] || { rev:0, ban_ra:0, tra:0, spend:0, don:0 };
                 
-                // Bỏ qua Kênh nếu hoàn toàn trống
-                if ((c.rev||0) === 0 && (c.spend||0) === 0 && (c.ban_ra||0) === 0 && (c.tra||0) === 0) return;
+                // Bỏ qua Kênh nếu cả 2 tháng hoàn toàn không có dữ liệu
+                if ((c.rev||0) === 0 && (c.spend||0) === 0 && (c.ban_ra||0) === 0 && (c.tra||0) === 0 && (p_data.rev||0) === 0 && (p_data.spend||0) === 0) return;
 
                 let pct = totalChRev > 0 ? (c.rev/totalChRev*100).toFixed(1) : 0;
                 let roas = c.spend > 0 ? (c.rev/c.spend).toFixed(1) : '—';
                 let cpo = (c.spend>0&&c.don>0) ? fmtNum(Math.round(c.spend/c.don)) : '—';
                 let hoanPct = (c.ban_ra+c.tra) > 0 ? (c.tra/(c.ban_ra+c.tra)*100).toFixed(1) : '0.0';
                 let warningBadge = c.tra > 0 && c.ban_ra > 0 && (c.tra/(c.ban_ra+c.tra)) > 0.4 ? ' <span style="font-size:9px;background:rgba(255,95,126,0.15);color:var(--danger);border-radius:3px;padding:1px 5px">⚠ hoàn cao</span>' : '';
-                channelRows += `<tr><td style="text-align:left;font-weight:700;color:var(--tx)">${grp}${warningBadge}</td><td><div style="display:flex;align-items:center;gap:5px;justify-content:flex-end;"><div style="width:50px;background:var(--bdr);height:4px;border-radius:2px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:var(--acc2)"></div></div><span style="font-size:10px;color:var(--acc2);font-weight:700;min-width:28px">${pct}%</span></div></td><td style="color:var(--tx);font-weight:700">${fmtNum(c.rev)}</td><td style="color:var(--tx2)">${c.don||0}</td><td style="${parseFloat(hoanPct)>20?'color:var(--danger);font-weight:700':parseFloat(hoanPct)>12?'color:var(--warn)':'color:var(--acc2)'}">${hoanPct}%</td><td style="color:var(--gunze)">${c.spend>0?fmtNum(c.spend):'—'}</td><td style="${roasCls(roas)}">${roas}</td><td style="color:var(--warn)">${cpo}</td></tr>`;
+                
+                let mRev = momStr(c.rev, p_data.rev);
+                let mSpend = (c.spend > 0 || p_data.spend > 0) ? momStr(c.spend, p_data.spend) : {str:'—', cls:''};
+
+                channelRows += `<tr><td style="text-align:left;font-weight:700;color:var(--tx)">${grp}${warningBadge}</td><td><div style="display:flex;align-items:center;gap:5px;justify-content:flex-end;"><div style="width:50px;background:var(--bdr);height:4px;border-radius:2px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:var(--acc2)"></div></div><span style="font-size:10px;color:var(--acc2);font-weight:700;min-width:28px">${pct}%</span></div></td><td style="color:var(--tx);font-weight:700">${fmtNum(c.rev)}</td><td style="color:var(--tx2);font-size:10px;">${fmtNum(p_data.rev)}</td><td style="font-weight:700;${mRev.cls}">${mRev.str}</td><td style="color:var(--tx)">${c.don||0}</td><td style="${parseFloat(hoanPct)>20?'color:var(--danger);font-weight:700':parseFloat(hoanPct)>12?'color:var(--warn)':'color:var(--acc2)'}">${hoanPct}%</td><td style="color:var(--gunze);font-weight:600;">${c.spend>0?fmtNum(c.spend):'—'}</td><td style="color:var(--tx2);font-size:10px;">${p_data.spend>0?fmtNum(p_data.spend):'—'}</td><td style="font-weight:700;${mSpend.cls}">${mSpend.str}</td><td style="${roasCls(roas)}">${roas}</td><td style="color:var(--warn)">${cpo}</td></tr>`;
             });
 
             let personRawText = '';
@@ -2749,8 +2817,41 @@ Trả về JSON thuần tuân thủ nghiêm ngặt cấu trúc sau:
                 globalRawText += hoanRawText + chRawText + pageRawText;
             }
 
-            window.kosuDbCache[p] = { dailyHtml, topCurEncoded, topPrevEncoded, totalRevCur: sapCur.totalRev, totalRevPrev: sapPrv.totalRev, hoanRows, hoanAlert, channelRows, catsRows, pageRows, personRawText, parsedAi: null };
+            let regionRows = '';
+        
+        // Ghi đè số liệu nhập tay (chỉ áp dụng khi xem tổng quan "All", không áp dụng khi lọc riêng 1 nhân sự)
+        if (p === 'All') {
+            if (manualSpendHN > 0) sapCur.regions['HN'].spend = manualSpendHN;
+            if (manualSpendHCM > 0) sapCur.regions['HCM'].spend = manualSpendHCM;
         }
+
+        ['HN', 'HCM', 'Other'].forEach(reg => {
+            let c = sapCur.regions[reg] || {rev:0, ban_ra:0, tra:0, spend:0};
+            let pr = sapPrv.regions[reg] || {rev:0, ban_ra:0, tra:0, spend:0};
+            if (c.rev === 0 && pr.rev === 0 && c.tra === 0 && pr.tra === 0 && c.spend === 0) return;
+
+            let pct = sapCur.totalRev > 0 ? (c.rev / sapCur.totalRev * 100).toFixed(1) : 0;
+            let mRev = momStr(c.rev, pr.rev);
+            let roas = c.spend > 0 ? (c.rev / c.spend).toFixed(1) : '—';
+            let hCur = (c.ban_ra + c.tra) > 0 ? (c.tra / (c.ban_ra + c.tra) * 100).toFixed(1) : '0.0';
+            let hPrv = (pr.ban_ra + pr.tra) > 0 ? (pr.tra / (pr.ban_ra + pr.tra) * 100).toFixed(1) : '—';
+            let regName = reg === 'Other' ? 'Tỉnh Khác' : reg;
+
+            regionRows += `<tr>
+                <td style="text-align:left;font-weight:700;color:var(--tx)">${regName}</td>
+                <td><div style="display:flex;align-items:center;gap:5px;justify-content:flex-end;"><div style="width:50px;background:var(--bdr);height:4px;border-radius:2px;overflow:hidden;"><div style="width:${pct}%;height:100%;background:var(--warn)"></div></div><span style="font-size:10px;color:var(--warn);font-weight:700;min-width:28px">${pct}%</span></div></td>
+                <td style="color:var(--tx);font-weight:700;">${fmtNum(c.rev)}</td>
+                <td style="color:var(--tx2);font-size:10px;">${fmtNum(pr.rev)}</td>
+                <td style="font-weight:700;${mRev.cls}">${mRev.str}</td>
+                <td style="${hoanCls(hCur)}">${hCur}%</td>
+                <td style="color:var(--tx2);font-size:10px;">${hPrv==='—'?'—':hPrv+'%'}</td>
+                <td style="color:var(--gunze);font-weight:600;">${c.spend>0?fmtNum(c.spend):'—'}</td>
+                <td style="${roasCls(roas)}">${roas}</td>
+            </tr>`;
+        });
+
+        window.kosuDbCache[p] = { dailyHtml, topCurEncoded, topPrevEncoded, totalRevCur: sapCur.totalRev, totalRevPrev: sapPrv.totalRev, hoanRows, hoanAlert, channelRows, catsRows, pageRows, personRawText, regionRows, parsedAi: null };
+      }
 
         window.kosuDbCache['All'].personRawText = globalRawText; 
 
@@ -2800,6 +2901,7 @@ Trả về JSON thuần tuân thủ nghiêm ngặt cấu trúc sau:
         clone.querySelector('#page-tbody').innerHTML = cAll.pageRows;
         clone.querySelector('#nhansu-tbody').innerHTML = globalNhanSuRows;
         clone.querySelector('#cats-tbody').innerHTML = cAll.catsRows;
+        clone.querySelector('#region-tbody').innerHTML = cAll.regionRows;
 
         // Cập nhật trạng thái Cảnh báo Hoàn trả
         if(cAll.hoanAlert.length > 0) { 
@@ -3292,6 +3394,7 @@ async function applyKosuFilter(person) {
     document.getElementById('channel-tbody').innerHTML = data.channelRows;
     document.getElementById('page-tbody').innerHTML = data.pageRows;
     document.getElementById('cats-tbody').innerHTML = data.catsRows;
+    document.getElementById('region-tbody').innerHTML = data.regionRows;
 
     const alertBox = document.getElementById('hoan-alert-box');
     const okBox = document.getElementById('hoan-ok-box');
@@ -4271,13 +4374,12 @@ function doCopyMainDbText() {
         <table class="stbl" style="margin-bottom:0;">
           <thead><tr>
           <th class="sortable" onclick="sortHtmlTable(this,0)" style="text-align:left;">Nhóm SP ↕</th>
-          <th class="sortable" onclick="sortHtmlTable(this,1)">Dự án ↕</th>
-          <th class="sortable" onclick="sortHtmlTable(this,2)">Hoàn HT ↕</th>
-          <th class="sortable" onclick="sortHtmlTable(this,3)">Bán HT ↕</th>
-          <th class="sortable" onclick="sortHtmlTable(this,4)">Tỷ lệ hoàn (HT) ↕</th>
-          <th class="sortable" onclick="sortHtmlTable(this,5)">Hoàn TT ↕</th>
-          <th class="sortable" onclick="sortHtmlTable(this,6)">Bán TT ↕</th>
-          <th class="sortable" onclick="sortHtmlTable(this,7)">Tỷ lệ hoàn (TT) ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,1)">Hoàn HT ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,2)">Bán HT ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,3)">Tỷ lệ hoàn (HT) ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,4)">Hoàn TT ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,5)">Bán TT ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,6)">Tỷ lệ hoàn (TT) ↕</th>
         </tr></thead>
           <tbody id="hoan-tbody"></tbody>
         </table>
@@ -4290,19 +4392,19 @@ function doCopyMainDbText() {
       <div style="overflow-x:auto;">
         <table class="stbl" style="margin-bottom:0;">
           <thead><tr>
-          <th class="sortable" onclick="sortHtmlTable(this,0)" style="text-align:left;">Kênh ↕</th>
-          <th class="sortable" onclick="sortHtmlTable(this,1)">Dự án ↕</th>
-          <th class="sortable" onclick="sortHtmlTable(this,2)">% DT ↕</th>
-          <th class="sortable" onclick="sortHtmlTable(this,3)">DT Hiện tại ↕</th>
-          <th class="sortable" onclick="sortHtmlTable(this,4)">DT Tháng trước ↕</th>
-          <th class="sortable" onclick="sortHtmlTable(this,5)">MoM DT ↕</th>
-          <th class="sortable" onclick="sortHtmlTable(this,6)">% Hoàn ↕</th>
-          <th class="sortable" onclick="sortHtmlTable(this,7)">Chi tiêu HT ↕</th>
-          <th class="sortable" onclick="sortHtmlTable(this,8)">Chi tiêu TT ↕</th>
-          <th class="sortable" onclick="sortHtmlTable(this,9)">MoM CP ↕</th>
-          <th class="sortable" onclick="sortHtmlTable(this,10)">ROAS ↕</th>
-          <th class="sortable" onclick="sortHtmlTable(this,11)">CPO ↕</th>
-        </tr></thead>
+            <th class="sortable" onclick="sortHtmlTable(this,0)" style="text-align:left;">Kênh ↕</th>
+            <th class="sortable" onclick="sortHtmlTable(this,1)">% DT ↕</th>
+            <th class="sortable" onclick="sortHtmlTable(this,2)">DT Hiện tại ↕</th>
+            <th class="sortable" onclick="sortHtmlTable(this,3)">DT Tháng trước ↕</th>
+            <th class="sortable" onclick="sortHtmlTable(this,4)">MoM DT ↕</th>
+            <th class="sortable" onclick="sortHtmlTable(this,5)">Số đơn ↕</th>
+            <th class="sortable" onclick="sortHtmlTable(this,6)">% Hoàn ↕</th>
+            <th class="sortable" onclick="sortHtmlTable(this,7)">Chi tiêu HT ↕</th>
+            <th class="sortable" onclick="sortHtmlTable(this,8)">Chi tiêu TT ↕</th>
+            <th class="sortable" onclick="sortHtmlTable(this,9)">MoM CP ↕</th>
+            <th class="sortable" onclick="sortHtmlTable(this,10)">ROAS ↕</th>
+            <th class="sortable" onclick="sortHtmlTable(this,11)">CPO ↕</th>
+          </tr></thead>
           <tbody id="channel-tbody"></tbody>
         </table>
       </div>
@@ -4354,6 +4456,26 @@ function doCopyMainDbText() {
             <th>CPO</th>
           </tr></thead>
           <tbody id="nhansu-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="pb" style="margin-bottom:20px;">
+      <div class="phdr"><div class="pdot" style="background:var(--warn)"></div><div class="pname" style="color:var(--warn)">📍 Phân Tích Khu Vực (Vùng Miền)</div></div>
+      <div style="overflow-x:auto;">
+        <table class="stbl" style="margin-bottom:0;">
+          <thead><tr>
+            <th style="text-align:left;">Khu vực</th>
+            <th>% DT</th>
+            <th>DT Hiện tại</th>
+            <th>DT Tháng trước</th>
+            <th>MoM DT</th>
+            <th>% Hoàn HT</th>
+            <th>% Hoàn TT</th>
+            <th>Chi tiêu HT</th>
+            <th>ROAS</th>
+          </tr></thead>
+          <tbody id="region-tbody"></tbody>
         </table>
       </div>
     </div>
