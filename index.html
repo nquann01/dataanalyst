@@ -2470,9 +2470,11 @@ const manualSpendHCM = document.getElementById('manual-spend-hcm-k') ? parseAnyN
             if (filterPerson !== 'All' && person !== filterPerson) continue;
 
             if(rev !== 0) res.totalRev += rev;
-            if(!res.topSp[name]) res.topSp[name] = { qty:0, rev:0 };
+            if(!res.topSp[name]) res.topSp[name] = { qty:0, rev:0, ban_ra:0, tra:0 };
             res.topSp[name].qty += qty;
             res.topSp[name].rev += rev;
+            res.topSp[name].ban_ra += banRa;
+            res.topSp[name].tra += tra;
 
             if (d2) res.dailyMap[d2] = (res.dailyMap[d2]||0) + rev;
 
@@ -2858,8 +2860,33 @@ const manualSpendHCM = document.getElementById('manual-spend-hcm-k') ? parseAnyN
                 <td style="${roasCls(roas)}">${roas}</td>
             </tr>`;
         });
+            // BÓC TÁCH TOP 10 SẢN PHẨM HOÀN TRẢ CAO NHẤT
+        // BÓC TÁCH TOP 10 SẢN PHẨM HOÀN TRẢ CAO NHẤT
+        let topHoanRows = '';
+        let spHoanList = Object.entries(sapCur.topSp)
+            .map(([k, v]) => {
+                let ban_ra = v.ban_ra || 0;
+                let tra = v.tra || 0;
+                let tot = ban_ra + tra; // Tổng lượng xuất đi
+                let rate = tot > 0 ? (tra / tot * 100) : 0;
+                return { name: k, ban_ra: ban_ra, tra: tra, tot: tot, rate: rate };
+            })
+            .filter(item => item.tra > 0 && item.tot >= 5) // Lọc SP có tổng xuất >= 5 để tránh nhiễu tỉ lệ ảo
+            .sort((a, b) => b.rate - a.rate || b.tra - a.tra) // Xếp theo % hoàn, sau đó đến số lượng hoàn
+            .slice(0, 10);
 
-        window.kosuDbCache[p] = { dailyHtml, topCurEncoded, topPrevEncoded, totalRevCur: sapCur.totalRev, totalRevPrev: sapPrv.totalRev, hoanRows, hoanAlert, channelRows, catsRows, pageRows, personRawText, regionRows, parsedAi: null };
+        spHoanList.forEach(item => {
+            let hCls = item.rate > 20 ? 'color:var(--danger);font-weight:700' : item.rate > 12 ? 'color:var(--warn);font-weight:600' : 'color:var(--acc2);font-weight:600';
+            let barCol = item.rate > 20 ? 'var(--danger)' : item.rate > 12 ? 'var(--warn)' : 'var(--acc2)';
+            topHoanRows += `<tr>
+                <td style="text-align:left;font-weight:700;color:var(--tx)">${item.name}</td>
+                <td style="color:var(--tx);font-weight:600;">${item.ban_ra}</td>
+                <td style="color:var(--danger);font-weight:700;">${item.tra}</td>
+                <td><div style="display:flex;align-items:center;gap:6px;justify-content:flex-end;"><div style="width:50px;background:var(--bdr);height:4px;border-radius:2px;overflow:hidden;"><div style="width:${Math.min(item.rate, 100)}%;height:100%;background:${barCol};"></div></div><span style="${hCls};font-size:10px;min-width:32px">${item.rate.toFixed(1)}%</span></div></td>
+            </tr>`;
+        });
+        if (!topHoanRows) topHoanRows = '<tr><td colspan="4" style="text-align:center;color:var(--tx3);padding:10px;">Tuyệt vời! Không có sản phẩm nào bị hoàn</td></tr>';
+        window.kosuDbCache[p] = { dailyHtml, topCurEncoded, topPrevEncoded, totalRevCur: sapCur.totalRev, totalRevPrev: sapPrv.totalRev, hoanRows, hoanAlert, channelRows, catsRows, pageRows, personRawText, regionRows, topHoanRows, parsedAi: null };
       }
 
         window.kosuDbCache['All'].personRawText = globalRawText; 
@@ -2911,6 +2938,7 @@ const manualSpendHCM = document.getElementById('manual-spend-hcm-k') ? parseAnyN
         clone.querySelector('#nhansu-tbody').innerHTML = globalNhanSuRows;
         clone.querySelector('#cats-tbody').innerHTML = cAll.catsRows;
         clone.querySelector('#region-tbody').innerHTML = cAll.regionRows;
+        clone.querySelector('#top-hoan-tbody').innerHTML = cAll.topHoanRows;
 
         // Cập nhật trạng thái Cảnh báo Hoàn trả
         if(cAll.hoanAlert.length > 0) { 
@@ -3404,6 +3432,7 @@ async function applyKosuFilter(person) {
     document.getElementById('page-tbody').innerHTML = data.pageRows;
     document.getElementById('cats-tbody').innerHTML = data.catsRows;
     document.getElementById('region-tbody').innerHTML = data.regionRows;
+    document.getElementById('top-hoan-tbody').innerHTML = data.topHoanRows;
 
     const alertBox = document.getElementById('hoan-alert-box');
     const okBox = document.getElementById('hoan-ok-box');
@@ -4391,6 +4420,22 @@ function doCopyMainDbText() {
           <th class="sortable" onclick="sortHtmlTable(this,6)">Tỷ lệ hoàn (TT) ↕</th>
         </tr></thead>
           <tbody id="hoan-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- Top 10 Sản Phẩm Bị Hoàn Nhiều Nhất -->
+    <div class="pb" style="margin-bottom:20px;">
+      <div class="phdr"><div class="pdot" style="background:var(--danger)"></div><div class="pname" style="color:var(--danger)">⚠️ Top 10 Sản Phẩm Bị Hoàn Nhiều Nhất</div></div>
+      <div style="overflow-x:auto;">
+        <table class="stbl" style="margin-bottom:0;">
+          <thead><tr>
+            <th class="sortable" onclick="sortHtmlTable(this,0)" style="text-align:left;">Tên Sản Phẩm ↕</th>
+            <th class="sortable" onclick="sortHtmlTable(this,1)">Bán ra ↕</th>
+            <th class="sortable" onclick="sortHtmlTable(this,2)">Trả lại ↕</th>
+            <th class="sortable" onclick="sortHtmlTable(this,3)">Tỷ lệ hoàn ↕</th>
+          </tr></thead>
+          <tbody id="top-hoan-tbody"></tbody>
         </table>
       </div>
     </div>
