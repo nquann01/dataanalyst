@@ -167,6 +167,19 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
   cursor: not-allowed;
   opacity: 0.5;
   filter: grayscale(1);
+/* Thêm vào cuối block <style> hiện tại */
+@media print {
+  .pb, .analysis-box, .stbl tr, .nblk,
+  .top-box, #daily-chart-container,
+  #main-daily-chart-container { 
+    page-break-inside: avoid !important; 
+    break-inside: avoid !important;
+  }
+}
+/* Override overflow cho tất cả bảng dashboard khi xuất */
+.stbl, [style*="overflow-x:auto"],
+[style*="overflow-x: auto"] {
+  overflow-x: visible !important;
 }
 </style>
 </head>
