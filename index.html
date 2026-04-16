@@ -2433,6 +2433,7 @@ const manualSpendHCM = document.getElementById('manual-spend-hcm-k') ? parseAnyN
           let srcIdx  = hd.findIndex(h => h.includes('nguồn'));
           let dateIdx = hd.findIndex(h => h === 'ngày' || h.includes('ngày'));
           let cityIdx = hd.findIndex(h => h.includes('tỉnh/thành phố') || h.includes('tỉnh') || h.includes('thành phố')); // THÊM DÒNG NÀY
+          let nsIdx = hd.findIndex(h => h.includes('tên nhân sự') || h.includes('nhân sự'));
 
           if(nameIdx === -1 || revIdx === -1) return res;
 
@@ -2444,6 +2445,7 @@ const manualSpendHCM = document.getElementById('manual-spend-hcm-k') ? parseAnyN
             let tra    = traIdx   !== -1 ? parseAnyNum(dataArr[i][traIdx])   : 0;
             let src    = srcIdx   !== -1 ? (dataArr[i][srcIdx]||'').trim()   : '';
             let d2     = dateIdx  !== -1 ? (dataArr[i][dateIdx]||'').trim()  : '';
+            let nsName = nsIdx !== -1 ? (dataArr[i][nsIdx]||'').trim() : '';
             let city   = cityIdx  !== -1 ? (dataArr[i][cityIdx]||'').trim().toLowerCase() : ''; // THÊM DÒNG NÀY
 
             if (src.toLowerCase().includes("park hill")) src = src.replace(/park hill/gi, "Times city");
@@ -2452,10 +2454,17 @@ const manualSpendHCM = document.getElementById('manual-spend-hcm-k') ? parseAnyN
             let person = srcToNS[src] || 'Khác';
 
             if (filterPerson === 'All') {
-                if(!res.nhanSu[person]) res.nhanSu[person] = { rev:0, ban_ra:0, tra:0, spend:0, data:0, mua:0 };
-                res.nhanSu[person].rev    += rev;
-                res.nhanSu[person].ban_ra += banRa;
-                res.nhanSu[person].tra    += tra;
+                // Biến này chỉ dùng riêng để cộng số cho Bảng Nhân sự
+                let personForNhanSu = person; 
+                if (src.toLowerCase() === 'facebook' && nsName) {
+                    let matchedNS = NS_ORDER.find(n => n.toLowerCase() === nsName.toLowerCase());
+                    if (matchedNS) personForNhanSu = matchedNS;
+                }
+
+                if(!res.nhanSu[personForNhanSu]) res.nhanSu[personForNhanSu] = { rev:0, ban_ra:0, tra:0, spend:0, data:0, mua:0 };
+                res.nhanSu[personForNhanSu].rev    += rev;
+                res.nhanSu[personForNhanSu].ban_ra += banRa;
+                res.nhanSu[personForNhanSu].tra    += tra;
             }
 
             if (filterPerson !== 'All' && person !== filterPerson) continue;
