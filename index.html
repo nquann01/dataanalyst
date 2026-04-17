@@ -3644,9 +3644,11 @@ function processMainSapo(dataArr, filterProject) {
     res.projectBanRa[project]  = (res.projectBanRa[project] || 0) + (banRa || 0);
     res.projectTra[project]    = (res.projectTra[project] || 0) + tra;
 
-    if (!res.topSp[name]) res.topSp[name] = { qty: 0, rev: 0, project };
+    if (!res.topSp[name]) res.topSp[name] = { qty: 0, rev: 0, ban_ra: 0, tra: 0, project };
     res.topSp[name].qty += qty;
     res.topSp[name].rev += rev;
+    res.topSp[name].ban_ra += (banRa || 0);
+    res.topSp[name].tra += (tra || 0);
 
     if (brand) {
       if (!res.brandStats[brand]) res.brandStats[brand] = { rev: 0, qty: 0, ban_ra: 0, tra: 0, project };
@@ -4010,6 +4012,34 @@ function renderMainDbView(filter) {
       }
     }
     regionTbody.innerHTML = rows.join('') || '<tr><td colspan="5" style="color:var(--tx3);text-align:center;padding:10px">Không có dữ liệu khu vực (cần cột Tỉnh/Thành phố trong Sapo)</td></tr>';
+  }
+  // ── Bảng Top 10 Sản Phẩm Hoàn Nhiều Nhất (Gunze & MP) ──
+  const topHoanTbody = document.getElementById('main-top-hoan-tbody');
+  if (topHoanTbody) {
+    let spHoanList = Object.entries(sapCur.topSp)
+        .map(([name, v]) => {
+            let tot = (v.ban_ra || 0) + (v.tra || 0);
+            let rate = tot > 0 ? (v.tra / tot * 100) : 0;
+            return { name, project: v.project, tra: v.tra, tot, rate };
+        })
+        .filter(item => item.tra > 0 && item.tot >= 3) // Lọc SP xuất từ 3 đơn trở lên để tránh tỉ lệ ảo
+        .sort((a, b) => b.rate - a.rate || b.tra - a.tra) // Ưu tiên xếp theo % hoàn, sau đó đến số lượng hoàn
+        .slice(0, 10);
+
+    topHoanTbody.innerHTML = spHoanList.map(item => {
+        let hCls = item.rate > 20 ? 'color:var(--danger);font-weight:700' : item.rate > 12 ? 'color:var(--warn);font-weight:600' : 'color:var(--acc2);font-weight:600';
+        let barCol = item.rate > 20 ? 'var(--danger)' : item.rate > 12 ? 'var(--warn)' : 'var(--acc2)';
+        let projColor = item.project === 'Gunze' ? 'var(--gunze)' : 'var(--mp)';
+        let projBadge = `<span style="font-size:9px;padding:1px 6px;border-radius:3px;background:${item.project==='Gunze'?'rgba(79,124,255,0.15)':'rgba(56,224,176,0.15)'};color:${projColor}">${item.project}</span>`;
+        
+        return `<tr>
+            <td style="text-align:left;font-weight:700;color:var(--tx)">${item.name}</td>
+            <td>${projBadge}</td>
+            <td style="color:var(--tx);font-weight:600;">${item.tot}</td>
+            <td style="color:var(--danger);font-weight:700;">${item.tra}</td>
+            <td><div style="display:flex;align-items:center;gap:6px;justify-content:flex-end;"><div style="width:50px;background:var(--bdr);height:4px;border-radius:2px;overflow:hidden;"><div style="width:${Math.min(item.rate, 100)}%;height:100%;background:${barCol};"></div></div><span style="${hCls};font-size:10px;min-width:32px">${item.rate.toFixed(1)}%</span></div></td>
+        </tr>`;
+    }).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--tx3);padding:10px;">Không có sản phẩm nào bị hoàn</td></tr>';
   }
   }
 }
@@ -4712,6 +4742,25 @@ function doCopyMainDbText() {
           <th class="sortable" onclick="sortHtmlTable(this,7)">Tỷ lệ hoàn (TT) ↕</th>
         </tr></thead>
         <tbody id="main-hoan-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="pb" style="margin-bottom:20px;">
+    <div class="phdr">
+      <div class="pdot" style="background:var(--danger)"></div>
+      <div class="pname" style="color:var(--danger)">⚠️ Top 10 Sản Phẩm Bị Hoàn Nhiều Nhất (Gunze & MP)</div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="stbl" style="margin-bottom:0;">
+        <thead><tr>
+          <th class="sortable" onclick="sortHtmlTable(this,0)" style="text-align:left;">Tên Sản Phẩm ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,1)">Dự án ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,2)">Tổng xuất ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,3)">Trả lại ↕</th>
+          <th class="sortable" onclick="sortHtmlTable(this,4)">Tỷ lệ hoàn ↕</th>
+        </tr></thead>
+        <tbody id="main-top-hoan-tbody"></tbody>
       </table>
     </div>
   </div>
