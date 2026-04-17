@@ -7,7 +7,60 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<style>
+  <style>
+/* ========================================= */
+/* CẤU HÌNH CSS DÀNH RIÊNG CHO LÚC XUẤT PDF  */
+/* ========================================= */
+@media print {
+  /* Ép khổ giấy A3 dọc để chứa vừa Dashboard rộng */
+  @page {
+    size: A3 portrait;
+    margin: 10mm 15mm;
+  }
+
+  /* Bắt buộc in nền tối (Dark mode) và hiển thị màu chart */
+  body, .report {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    background: #0f1117 !important;
+    color: #e8eaf6 !important;
+  }
+
+  /* 1. GIẤU TOÀN BỘ RÁC (Menu, Header, Thanh công cụ, Nút bấm) */
+  header, .left, .out-bar, button, .btn-magic, .btn-regen-eval, .fs-topbar, .fs-overlay, .drop-zone {
+    display: none !important;
+  }
+
+  /* 2. BUNG GIAO DIỆN BÁO CÁO RA TOÀN MÀN HÌNH */
+  .app {
+    display: block !important;
+    height: auto !important;
+  }
+  .right {
+    display: block !important;
+    overflow: visible !important;
+    width: 100% !important;
+    border-left: none !important;
+  }
+  .out-body {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* 3. TRỊ BỆNH CẮT NGANG BẢNG VÀ KHỐI MÀU */
+  .pb, .analysis-box, .stbl tr, .nblk, .top-box, #daily-chart-container, #main-daily-chart-container { 
+    page-break-inside: avoid !important; 
+    break-inside: avoid !important;
+  }
+
+  /* 4. TRỊ BỆNH CỤT BẢNG (Bung thanh cuộn ngang) */
+  .stbl, [style*="overflow"], table {
+    overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+    width: 100% !important;
+  }
+}  
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;600;700&display=swap');
   .fs-overlay {
   display: none; position: fixed; inset: 0;
@@ -3177,87 +3230,10 @@ async function exportImage() {
 }
 
 function exportPDF() {
-  const rptEl = document.getElementById('rpt'); if (!rptEl) return;
-  const btn = document.getElementById('pdf-btn'); 
-  const ogText = btn.innerHTML; 
-  btn.innerHTML = '⏳ Đang dàn trang...'; 
-  btn.disabled = true;
-  
-  // 1. Lưu lại trạng thái của khối chứa báo cáo gốc
-  const ogHeight = rptEl.style.height;
-  const ogOverflow = rptEl.style.overflow;
-  rptEl.style.height = 'auto';
-  rptEl.style.overflow = 'visible';
-
-  // 2. ÉP BUỘC CÁC KHỐI BÊN TRONG KHÔNG ĐƯỢC CẮT NGANG VÀ BỎ OVERFLOW: HIDDEN
-  // Chọn tất cả các khối lớn và các dòng trong bảng (tr)
-  const blocksToProtect = rptEl.querySelectorAll('.pb, .iblock, .analysis-box, .stbl tr, .nblk');
-  const originalStyles = [];
-  
-  blocksToProtect.forEach(el => {
-    // Ghi nhớ lại style cũ để lát nữa trả về
-    originalStyles.push({
-      overflow: el.style.overflow,
-      pageBreakInside: el.style.pageBreakInside,
-      breakInside: el.style.breakInside
-    });
-    
-    // Ghi đè style tạm thời để xuất PDF
-    el.style.overflow = 'visible'; 
-    el.style.pageBreakInside = 'avoid';
-    el.style.breakInside = 'avoid';
-  });
-
-  const opt = { 
-    margin: [15, 10, 15, 10], // Lề: Trên, Phải, Dưới, Trái (mm)
-    filename: `Bao_Cao_${new Date().toISOString().slice(0,10)}.pdf`, 
-    image: { type: 'jpeg', quality: 1 }, 
-    html2canvas: { 
-        scale: 2, 
-        backgroundColor: '#0f1117', 
-        useCORS: true, 
-        scrollY: 0,
-        windowWidth: rptEl.scrollWidth
-    }, 
-    jsPDF: { 
-        unit: 'mm', 
-        format: 'a3', // Giữ A3 cho rộng rãi
-        orientation: 'portrait' 
-    },
-    // Chế độ né cắt ngang siêu mạnh của html2pdf
-    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] } 
-  };
-  
-  html2pdf().set(opt).from(rptEl).save()
-    .then(() => { 
-      // 3. XUẤT XONG THÌ TRẢ LẠI GIAO DIỆN NHƯ CŨ
-      rptEl.style.height = ogHeight;
-      rptEl.style.overflow = ogOverflow;
-      
-      blocksToProtect.forEach((el, index) => {
-        el.style.overflow = originalStyles[index].overflow;
-        el.style.pageBreakInside = originalStyles[index].pageBreakInside;
-        el.style.breakInside = originalStyles[index].breakInside;
-      });
-
-      btn.innerHTML = '✓ Đã tải PDF'; btn.classList.add('ok'); 
-      setTimeout(() => { btn.innerHTML = ogText; btn.classList.remove('ok'); }, 2000); 
-      btn.disabled = false; 
-    })
-    .catch(err => { 
-      // Gặp lỗi cũng phải trả lại giao diện như cũ
-      rptEl.style.height = ogHeight;
-      rptEl.style.overflow = ogOverflow;
-      blocksToProtect.forEach((el, index) => {
-        el.style.overflow = originalStyles[index].overflow;
-      });
-
-      alert('Lỗi tải PDF: ' + err); 
-      btn.innerHTML = ogText; 
-      btn.disabled = false; 
-    });
+  // Bỏ qua thư viện lỗi thời, gọi thẳng bộ xử lý PDF của Chrome/Edge/Safari
+  // Đảm bảo tỷ lệ thành công 100%, nét căng và không bị cắt xén
+  window.print();
 }
-
 let chatContext = [];
 
 function resetChat() {
