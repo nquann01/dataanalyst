@@ -2958,7 +2958,7 @@ const manualSpendHCM = document.getElementById('manual-spend-hcm-k') ? parseAnyN
             let barCol = item.rate > 20 ? 'var(--danger)' : item.rate > 12 ? 'var(--warn)' : 'var(--acc2)';
             topHoanRows += `<tr>
                 <td style="text-align:left;font-weight:700;color:var(--tx)">${item.name}</td>
-                <td style="color:var(--tx);font-weight:600;">${item.ban_ra}</td>
+                <td style="color:var(--tx);font-weight:600;">${item.tot}</td>
                 <td style="color:var(--danger);font-weight:700;">${item.tra}</td>
                 <td><div style="display:flex;align-items:center;gap:6px;justify-content:flex-end;"><div style="width:50px;background:var(--bdr);height:4px;border-radius:2px;overflow:hidden;"><div style="width:${Math.min(item.rate, 100)}%;height:100%;background:${barCol};"></div></div><span style="${hCls};font-size:10px;min-width:32px">${item.rate.toFixed(1)}%</span></div></td>
             </tr>`;
