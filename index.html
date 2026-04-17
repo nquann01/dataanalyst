@@ -26,9 +26,24 @@
     color: #e8eaf6 !important;
   }
 
-  /* 1. GIẤU TOÀN BỘ RÁC (Menu, Header, Thanh công cụ, Nút bấm) */
-  header, .left, .out-bar, button, .btn-magic, .btn-regen-eval, .fs-topbar, .fs-overlay, .drop-zone {
+  /* 1. GIẤU TOÀN BỘ RÁC (Lưu ý: Đã gỡ .fs-overlay ra khỏi danh sách bị ẩn) */
+  header, .left, .out-bar, button, .btn-magic, .btn-regen-eval, .fs-topbar, .drop-zone {
     display: none !important;
+  }
+
+  /* === CHỐNG LỖI FULL SCREEN === */
+  /* Ép khung Full Screen về dạng tĩnh (static) để trình duyệt cuộn được và in đủ số trang */
+  .fs-overlay.active {
+    display: block !important;
+    position: static !important; 
+    overflow: visible !important;
+    height: auto !important;
+    padding: 0 !important;
+  }
+  .fs-content {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
   }
 
   /* 2. BUNG GIAO DIỆN BÁO CÁO RA TOÀN MÀN HÌNH */
@@ -982,38 +997,48 @@ async function loadHistList() {
 }
 
 function viewHist() {
-  const reportId = document.getElementById('hist-sel').value; // Lấy ID báo cáo sếp vừa chọn
-  const delBtn = document.getElementById('del-btn'); 
+  const reportId = document.getElementById('hist-sel').value; // Lấy ID báo cáo sếp vừa chọn
+  const delBtn = document.getElementById('del-btn'); 
   const delAllBtn = document.getElementById('del-all-btn'); // Nút xoá hết
-  const magicBtn = document.getElementById('magic-btn'); 
-  const forecastBtn = document.getElementById('forecast-btn');
-  const chatBox = document.getElementById('ai-chat-box');
+  const magicBtn = document.getElementById('magic-btn'); 
+  const forecastBtn = document.getElementById('forecast-btn');
+  const chatBox = document.getElementById('ai-chat-box');
   const role = sessionStorage.getItem('user_role'); // Lấy quyền user
-  
-  resetChat(); 
-  
-  // Nếu sếp chọn ô "-- Xem lịch sử --" (không có giá trị)
-  if(!reportId) {
-    document.getElementById('out').innerHTML = `<div class="s-empty"><div class="ico">🗂️</div><p>Chọn một báo cáo từ lịch sử để xem</p></div>`;
-    delBtn.style.display = 'none'; 
+  
+  resetChat(); 
+  
+  // Nếu sếp chọn ô "-- Xem lịch sử --" (không có giá trị)
+  if(!reportId) {
+    document.getElementById('out').innerHTML = `<div class="s-empty"><div class="ico">🗂️</div><p>Chọn một báo cáo từ lịch sử để xem</p></div>`;
+    delBtn.style.display = 'none'; 
     delAllBtn.style.display = 'none';
     magicBtn.style.display = 'none'; 
     forecastBtn.style.display = 'none'; 
-    if(chatBox) chatBox.style.display = 'none'; 
-    return;
-  }
+    if(chatBox) chatBox.style.display = 'none'; 
+    return;
+  }
 
-  // TÌM BÁO CÁO TRONG CACHE DỰA VÀO ID
-  const rpt = cloudReportsCache.find(item => item.id === reportId);
-  
-  if(rpt) {
-    // Bơm mã HTML của báo cáo vào màn hình
-    document.getElementById('out').innerHTML = rpt.html;
-    
-    // Bật các nút chức năng lên
-    magicBtn.style.display = 'inline-block'; 
-    forecastBtn.style.display = 'inline-block'; 
-    if(chatBox) chatBox.style.display = 'flex';
+  // TÌM BÁO CÁO TRONG CACHE DỰA VÀO ID
+  const rpt = cloudReportsCache.find(item => item.id === reportId);
+  
+  if(rpt) {
+    // 1. Bơm mã HTML của báo cáo vào màn hình
+    document.getElementById('out').innerHTML = rpt.html;
+
+    // 2. KHÔI PHỤC DỮ LIỆU ĐỂ LỌC NHÂN SỰ / DỰ ÁN
+    const hiddenKosu = document.getElementById('hidden-kosu-cache');
+    if (hiddenKosu) {
+        try { window.kosuDbCache = JSON.parse(decodeURIComponent(hiddenKosu.innerText)); } catch(e) { console.log(e); }
+    }
+    const hiddenMain = document.getElementById('hidden-main-cache');
+    if (hiddenMain) {
+        try { window.mainDbCache = JSON.parse(decodeURIComponent(hiddenMain.innerText)); } catch(e) { console.log(e); }
+    }
+    
+    // Bật các nút chức năng lên
+    magicBtn.style.display = 'inline-block'; 
+    forecastBtn.style.display = 'inline-block'; 
+    if(chatBox) chatBox.style.display = 'flex';
 
     // === XỬ LÝ NÚT XOÁ THEO QUYỀN ===
     delBtn.style.display = 'block';
@@ -1026,7 +1051,7 @@ function viewHist() {
         delBtn.title = "Bạn chỉ có quyền xem, không thể xoá";
         delAllBtn.style.display = 'none'; // Giấu nút xoá sạch đi
     }
-  }
+  }
 }
 
 async function saveHist(type, periodStr, htmlStr) {
@@ -3015,7 +3040,8 @@ const manualSpendHCM = document.getElementById('manual-spend-hcm-k') ? parseAnyN
         out.innerHTML = '';
         out.appendChild(clone);
         
-        saveHist('Dashboard SP', 'Kosu', document.getElementById('out').innerHTML);
+        const hiddenKosu = `<div id="hidden-kosu-cache" style="display:none!important;">${encodeURIComponent(JSON.stringify(window.kosuDbCache))}</div>`;
+        saveHist('Dashboard SP', 'Kosu', document.getElementById('out').innerHTML + hiddenKosu);
         
         // Kích hoạt sắp xếp mặc định cho danh sách Top 10
         setTimeout(() => {
@@ -3748,7 +3774,8 @@ async function genMainDashboard() {
   renderMainDbView('All');
   injectMainAiEval(parsedAi);
 
-  saveHist('Dashboard Main', 'Gunze+MP', document.getElementById('out').innerHTML);
+  const hiddenMain = `<div id="hidden-main-cache" style="display:none!important;">${encodeURIComponent(JSON.stringify(window.mainDbCache))}</div>`;
+  saveHist('Dashboard Main', 'Gunze+MP', document.getElementById('out').innerHTML + hiddenMain);
 }
 
 function buildMainRawText(sapCur, sapPrev) {
