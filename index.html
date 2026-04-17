@@ -2622,6 +2622,7 @@ const manualSpendHCM = document.getElementById('manual-spend-hcm-k') ? parseAnyN
 
           let startIdx = adsArr.indexOf(hdRow) + 1;
           let macroSpends = { "GĐX":0, "SĐX":0, "Cao gót":0, "GĐB":0, "Boot":0 };
+          let combinedSpend = 0; // THÊM BIẾN NÀY ĐỂ HỨNG CHI PHÍ CHẠY GỘP
           sapoStats.channelSpends = {};
 
           for(let i = startIdx; i < adsArr.length; i++) {
@@ -2697,11 +2698,17 @@ const manualSpendHCM = document.getElementById('manual-spend-hcm-k') ? parseAnyN
             sapoStats.channelSpends[chGrp] = (sapoStats.channelSpends[chGrp]||0) + spend;
 
             if(!isLivestream && !campName.includes('cpo')) {
-                if     (adName.includes('gđx')||adName.includes('gdx'))                     macroSpends['GĐX']    += spend;
-                else if(adName.includes('sđx')||adName.includes('sdx'))                     macroSpends['SĐX']    += spend;
-                else if(adName.includes('cao gót')||adName.includes('cao got'))             macroSpends['Cao gót']+= spend;
-                else if(adName.includes('gđb')||adName.includes('gdb'))                     macroSpends['GĐB']    += spend;
-                else if(adName.includes('boot')||adName.includes('bốt'))                    macroSpends['Boot']   += spend;
+                let isMatched = false; // Cờ theo dõi xem có khớp từ khóa không
+                if     (adName.includes('gđx')||adName.includes('gdx'))                     { macroSpends['GĐX']    += spend; isMatched = true; }
+                else if(adName.includes('sđx')||adName.includes('sdx'))                     { macroSpends['SĐX']    += spend; isMatched = true; }
+                else if(adName.includes('cao gót')||adName.includes('cao got'))             { macroSpends['Cao gót']+= spend; isMatched = true; }
+                else if(adName.includes('gđb')||adName.includes('gdb'))                     { macroSpends['GĐB']    += spend; isMatched = true; }
+                else if(adName.includes('boot')||adName.includes('bốt'))                    { macroSpends['Boot']   += spend; isMatched = true; }
+                
+                // MỚI: Nếu không khớp nhóm nào (quảng cáo gộp), thì nhét tiền vào biến combinedSpend
+                if (!isMatched) {
+                    combinedSpend += spend;
+                }
             }
           }
 
@@ -2720,6 +2727,20 @@ const manualSpendHCM = document.getElementById('manual-spend-hcm-k') ? parseAnyN
           distribute('GĐB',    ['Giày đế bệt']);
           distribute('Boot',   ['Boot']);
 
+          // MỚI: PHÂN BỔ CHI TIÊU GỘP THEO TỈ TRỌNG DOANH THU TOÀN BỘ
+          if (combinedSpend > 0) {
+              // Lấy tất cả nhóm SP hiện có, loại trừ nhóm Khác để số chính xác hơn
+              let allCats = Object.keys(sapoStats.cats).filter(c => c !== 'Khác');
+              let totalRevForCombined = allCats.reduce((s, c) => s + sapoStats.cats[c].rev, 0);
+              
+              if (totalRevForCombined > 0) {
+                  allCats.forEach(c => {
+                      let ratio = sapoStats.cats[c].rev / totalRevForCombined;
+                      sapoStats.cats[c].spend += combinedSpend * ratio;
+                  });
+              }
+          }
+
           if (sapoStats.unallocatedSpend > 0) {
               let totRev = (sapoStats.regions.HN.rev + sapoStats.regions.HCM.rev + sapoStats.regions.Other.rev) || 1;
               sapoStats.regions.HN.spend += sapoStats.unallocatedSpend * (sapoStats.regions.HN.rev / totRev);
@@ -2727,7 +2748,6 @@ const manualSpendHCM = document.getElementById('manual-spend-hcm-k') ? parseAnyN
               sapoStats.regions.Other.spend += sapoStats.unallocatedSpend * (sapoStats.regions.Other.rev / totRev);
           }
         };
-
         window.kosuDbCache = {};
         const persons = ['All', ...NS_ORDER];
         let globalRawText = ''; let globalNhanSuRows = '';
