@@ -1328,13 +1328,59 @@ function handleKosuAdsFile(files) {
 
 function processKosuAdsCSV(rawText, filename) {
   try {
-    // Sếp dán code bóc tách số liệu FB Ads của sếp vào đây nhé
-    // Nếu sếp cần em viết lại logic bóc tách cột Chi tiêu, Hiển thị... thì bảo em.
+    let lines = rawText.split(/\r?\n/);
+    function parseCSVRow(str) { if (!str) return []; let arr = []; let quote = false; let cell = ''; for (let c = 0; c < str.length; c++) { if (str[c] === '"') { quote = !quote; } else if (str[c] === ',' && !quote) { arr.push(cell.trim()); cell = ''; } else { cell += str[c]; } } arr.push(cell.trim()); return arr; }
     
-    kosuAdsTextData = `\n=== DỮ LIỆU ADS KOSU (${filename}) ===\n` + rawText.substring(0, 3000); // Tạm thời gửi text thô cho AI đọc
+    let spendIdx = -1;
+    let campIdx = -1;
+    let startRow = 0;
     
-    document.getElementById('preview-kosu-ads').innerHTML = `<div style="font-size:11px; font-weight:600; color:var(--kosu); padding-top:5px;">✓ Đã tải File Ads: ${filename}</div>`;
+    // 1. Tìm dòng tiêu đề chứa chữ "Chi tiêu"
+    for (let i = 0; i < Math.min(15, lines.length); i++) {
+      let row = parseCSVRow(lines[i]);
+      let strRow = row.join('').toLowerCase();
+      if (strRow.includes('amount spent') || strRow.includes('chi tiêu') || strRow.includes('chi phí') || strRow.includes('số tiền đã chi')) {
+        let headers = row.map(h => h.toLowerCase().trim());
+        spendIdx = headers.findIndex(h => h.includes('amount spent') || h.includes('chi tiêu') || h.includes('chi phí') || h.includes('số tiền đã chi'));
+        campIdx = headers.findIndex(h => h.includes('campaign name') || h.includes('tên chiến dịch'));
+        startRow = i + 1; 
+        break;
+      }
+    }
+
+    let totalSpend = 0;
+    // 2. Cộng dồn cột chi tiêu (Loại trừ dòng Tổng cộng của FB)
+    if (spendIdx !== -1) {
+      for (let i = startRow; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        let row = parseCSVRow(lines[i]);
+        if (row.length <= spendIdx) continue;
+        
+        let campName = campIdx !== -1 ? (row[campIdx] || '').toLowerCase() : '';
+        // Bỏ qua dòng tổng cộng của FB để không bị cộng gấp đôi
+        if (campName === 'total' || campName === 'tổng cộng' || campName === '—' || campName === '') continue;
+        
+        let spend = parseAnyNum(row[spendIdx]);
+        totalSpend += spend;
+      }
+      
+      // 3. Tự động điền vào ô Input trên giao diện
+      if (totalSpend > 0) {
+          const spendInput = document.getElementById('spend-k');
+          if (spendInput) {
+              spendInput.value = Math.round(totalSpend).toLocaleString('vi-VN');
+              // Đổi màu viền và chữ sang xanh lá để sếp biết là AI đã tự điền thành công
+              spendInput.style.borderColor = 'var(--acc2)';
+              spendInput.style.color = 'var(--acc2)';
+          }
+          kosuSpend.total = totalSpend; // Lưu vào biến hệ thống
+      }
+    }
+
+    kosuAdsTextData = `\n=== DỮ LIỆU ADS KOSU (${filename}) ===\n` + rawText.substring(0, 3000); 
+    document.getElementById('preview-kosu-ads').innerHTML = `<div style="font-size:11px; font-weight:600; color:var(--acc2); padding-top:5px;">✓ Đã tải File Ads & Tự động cộng chi tiêu: ${filename}</div>`;
   } catch (err) {
+    kosuAdsTextData = "";
     document.getElementById('preview-kosu-ads').innerHTML = `<div style="font-size:11px; color:var(--danger); padding-top:5px;">❌ Lỗi đọc Ads: ${err.message}</div>`;
   }
 }
