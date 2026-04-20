@@ -3363,23 +3363,168 @@ async function sendChat() {
   const rawExcel = typeof excelTextData !== 'undefined' ? excelTextData : '';
 
   if (chatContext.length === 0) {
+    // === LẤY DỮ LIỆU GỐC TỪ NHIỀU NGUỒN ===
+    let rawCacheData = '';
+
+    // 1. Lấy từ Kosu Dashboard Cache
+    if (window.kosuDbCache && window.kosuDbCache['All']) {
+      const allCache = window.kosuDbCache['All'];
+      
+      // Raw text report
+      if (allCache.personRawText) {
+        rawCacheData += `\n=== DỮ LIỆU CHI TIẾT DASHBOARD KOSU ===\n${allCache.personRawText}\n`;
+      }
+      
+      // Tổng hợp từng nhân sự
+      const NS_ORDER = ['AnhVV','Trangle','quantm','ChungPV','Vanh','SIJ','JPS'];
+      let nhanSuDetail = '\n=== CHI TIẾT TỪNG NHÂN SỰ ===\n';
+      NS_ORDER.forEach(ns => {
+        const nsCache = window.kosuDbCache[ns];
+        if (nsCache && nsCache.personRawText) {
+          nhanSuDetail += `\n--- ${ns} ---\n${nsCache.personRawText}\n`;
+        }
+      });
+      if (nhanSuDetail.length > 30) rawCacheData += nhanSuDetail;
+      
+      // Top sản phẩm hiện tại
+      if (allCache.topCurEncoded) {
+        try {
+          const topList = JSON.parse(decodeURIComponent(allCache.topCurEncoded));
+          rawCacheData += '\n=== TOP SẢN PHẨM THÁNG HIỆN TẠI (ĐẦY ĐỦ) ===\n';
+          topList.forEach((p, i) => {
+            rawCacheData += `${i+1}. ${p.name}: ${p.qty} SP - ${Math.round(p.rev).toLocaleString('vi-VN')} ₫\n`;
+          });
+        } catch(e) {}
+      }
+      
+      // Top sản phẩm tháng trước
+      if (allCache.topPrevEncoded) {
+        try {
+          const topPrev = JSON.parse(decodeURIComponent(allCache.topPrevEncoded));
+          rawCacheData += '\n=== TOP SẢN PHẨM THÁNG TRƯỚC (ĐẦY ĐỦ) ===\n';
+          topPrev.forEach((p, i) => {
+            rawCacheData += `${i+1}. ${p.name}: ${p.qty} SP - ${Math.round(p.rev).toLocaleString('vi-VN')} ₫\n`;
+          });
+        } catch(e) {}
+      }
+      
+      // AI eval
+      if (allCache.parsedAi) {
+        rawCacheData += `\n=== ĐÁNH GIÁ AI ĐÃ PHÂN TÍCH ===\n${JSON.stringify(allCache.parsedAi, null, 2)}\n`;
+      }
+    }
+
+    // 2. Lấy từ Main Dashboard Cache (Gunze & MP)
+    if (window.mainDbCache && window.mainDbCache['All']) {
+      const mainAll = window.mainDbCache['All'];
+      const sapCur = mainAll.sapCur;
+      const sapPrev = mainAll.sapPrev;
+      
+      if (sapCur) {
+        rawCacheData += '\n=== DỮ LIỆU CHI TIẾT DASHBOARD GUNZE & MỸ PHẨM ===\n';
+        rawCacheData += `Tổng DT Gunze: ${Math.round(sapCur.projectRev?.Gunze||0).toLocaleString('vi-VN')} ₫\n`;
+        rawCacheData += `Tổng DT MP: ${Math.round(sapCur.projectRev?.MP||0).toLocaleString('vi-VN')} ₫\n`;
+        rawCacheData += `Chi phí Gunze: ${Math.round(sapCur.projectSpend?.Gunze||0).toLocaleString('vi-VN')} ₫\n`;
+        rawCacheData += `Chi phí MP: ${Math.round(sapCur.projectSpend?.MP||0).toLocaleString('vi-VN')} ₫\n`;
+        
+        // Top sản phẩm đầy đủ
+        if (sapCur.topSp && Object.keys(sapCur.topSp).length > 0) {
+          const topAll = Object.entries(sapCur.topSp)
+            .sort((a,b) => b[1].rev - a[1].rev);
+          rawCacheData += `\n=== TOÀN BỘ SẢN PHẨM THÁNG HIỆN TẠI (${topAll.length} SP) ===\n`;
+          topAll.forEach(([ name, v], i) => {
+            const tot = (v.ban_ra||0) + (v.tra||0);
+            const hoan = tot > 0 ? ((v.tra/tot)*100).toFixed(1) : '0.0';
+            rawCacheData += `${i+1}. [${v.project}] ${name}: ${v.qty} SP - DT: ${Math.round(v.rev).toLocaleString('vi-VN')} ₫ - Hoàn: ${hoan}% (${v.tra||0}/${tot})\n`;
+          });
+        }
+        
+        // Tháng trước
+        if (sapPrev && sapPrev.topSp && Object.keys(sapPrev.topSp).length > 0) {
+          const topPrevAll = Object.entries(sapPrev.topSp)
+            .sort((a,b) => b[1].rev - a[1].rev);
+          rawCacheData += `\n=== TOÀN BỘ SẢN PHẨM THÁNG TRƯỚC (${topPrevAll.length} SP) ===\n`;
+          topPrevAll.forEach(([name, v], i) => {
+            rawCacheData += `${i+1}. [${v.project}] ${name}: ${v.qty} SP - DT: ${Math.round(v.rev).toLocaleString('vi-VN')} ₫\n`;
+          });
+        }
+        
+        // Nhãn hiệu
+        if (sapCur.brandStats && Object.keys(sapCur.brandStats).length > 0) {
+          rawCacheData += '\n=== DỮ LIỆU THEO NHÃN HIỆU ===\n';
+          Object.entries(sapCur.brandStats)
+            .sort((a,b) => b[1].rev - a[1].rev)
+            .forEach(([brand, v]) => {
+              const tot = (v.ban_ra||0) + (v.tra||0);
+              const hoan = tot > 0 ? ((v.tra/tot)*100).toFixed(1) : '0.0';
+              rawCacheData += `- [${v.project}] ${brand}: DT ${Math.round(v.rev).toLocaleString('vi-VN')} ₫ | SL: ${v.qty} | Hoàn: ${hoan}%\n`;
+            });
+        }
+        
+        // Khu vực
+        if (sapCur.regionRev) {
+          rawCacheData += '\n=== DỮ LIỆU KHU VỰC ===\n';
+          ['HN','HCM','Other'].forEach(reg => {
+            const gRev = sapCur.regionRev[reg]?.Gunze || 0;
+            const mRev = sapCur.regionRev[reg]?.MP || 0;
+            rawCacheData += `- ${reg}: Gunze ${Math.round(gRev).toLocaleString('vi-VN')} ₫ | MP ${Math.round(mRev).toLocaleString('vi-VN')} ₫\n`;
+          });
+        }
+        
+        // Kênh bán hàng
+        if (sapCur.srcMap) {
+          rawCacheData += '\n=== DỮ LIỆU KÊNH BÁN HÀNG ===\n';
+          ['Gunze', 'MP'].forEach(proj => {
+            if (!sapCur.srcMap[proj]) return;
+            rawCacheData += `[${proj}]:\n`;
+            Object.entries(sapCur.srcMap[proj])
+              .sort((a,b) => b[1].rev - a[1].rev)
+              .forEach(([src, v]) => {
+                rawCacheData += `  - ${src}: DT ${Math.round(v.rev).toLocaleString('vi-VN')} ₫ | Đơn: ${v.don||0}\n`;
+              });
+          });
+        }
+        
+        // AI eval
+        if (mainAll.parsedAi) {
+          rawCacheData += `\n=== ĐÁNH GIÁ AI ===\n${JSON.stringify(mainAll.parsedAi, null, 2)}\n`;
+        }
+      }
+    }
+
+    // 3. Lấy Sapo Stats Kosu (xử lý tuần)
+    if (window.kosuSapoStats) {
+      rawCacheData += '\n=== SAPO KOSU (TUẦN) ===\n';
+      rawCacheData += `Tổng DT Sapo: ${Math.round(window.kosuSapoStats.totalDt||0).toLocaleString('vi-VN')} ₫\n`;
+      rawCacheData += `HN: ${Math.round(window.kosuSapoStats.dtHn||0).toLocaleString('vi-VN')} ₫\n`;
+      rawCacheData += `HCM: ${Math.round(window.kosuSapoStats.dtHcm||0).toLocaleString('vi-VN')} ₫\n`;
+      rawCacheData += `Top SP: ${window.kosuSapoStats.topProducts||'—'}\n`;
+    }
+    // === KẾT THÚC LẤY DỮ LIỆU ===
+
     chatContext.push({
       role: "user",
-      parts: [{ text: `Bạn là Chuyên gia Phân tích Dữ liệu Cấp cao. Hãy trả lời câu hỏi dựa trên Báo Cáo Kinh Doanh dưới đây.
+      parts: [{ text: `Bạn là Chuyên gia Phân tích Dữ liệu Cấp cao. Hãy trả lời câu hỏi dựa trên toàn bộ dữ liệu dưới đây.
 
-=== BẢNG BÁO CÁO ĐÃ TỔNG HỢP ===
+QUAN TRỌNG:
+- Ưu tiên tìm kiếm trong "DỮ LIỆU GỐC CHI TIẾT" trước khi dùng bảng render.
+- Khi được hỏi về sản phẩm, nhân sự, khu vực, kênh — truy vấn trực tiếp vào dữ liệu gốc để có số liệu đầy đủ, không chỉ dừng ở top 10 trên bảng.
+- Nếu sếp bảo "Số liệu sai", rà soát lại dữ liệu gốc và báo số đúng.
+- Trình bày rõ ràng, dùng in đậm (**text**) và gạch đầu dòng (*) để dễ đọc.
+
+=== BẢNG BÁO CÁO ĐÃ RENDER ===
 ${rptEl.innerText}
 
-=== DỮ LIỆU GỐC (ĐỂ ĐỐI CHIẾU NẾU CẦN) ===
+=== DỮ LIỆU GỐC TỪ INPUT (SALE / ADS TEXT) ===
 Sale Gunze: ${rawSaleG}
 Sale Mỹ Phẩm: ${rawSaleM}
 Sale Kosu: ${rawSaleK}
 Excel Ads: ${rawExcel}
+Sapo Kosu (tuần): ${kosuSapoTextData || '—'}
+Ads Kosu (tuần): ${kosuAdsTextData || '—'}
 
-LƯU Ý DÀNH CHO BẠN: 
-- Nếu sếp bảo "Số liệu sai", hãy lập tức rà soát lại phần "DỮ LIỆU GỐC" xem có chênh lệch so với BẢNG BÁO CÁO không.
-- Nếu tìm thấy lỗi, hãy xin lỗi, báo số ĐÚNG từ dữ liệu gốc và tự động tính toán lại.
-- Trình bày chuyên nghiệp, dùng in đậm (**text**) hoặc gạch đầu dòng (*) để trình bày mạch lạc.
+=== DỮ LIỆU GỐC CHI TIẾT (TỪ FILE ĐÃ PARSE) ===
+${rawCacheData || '(Không có dữ liệu cache — đang xem báo cáo text thuần)'}
 
 === CÂU HỎI CỦA SẾP ===
 ${text}` }]
