@@ -1307,84 +1307,6 @@ function processSpecialCSV(rawText, filename) {
   document.getElementById('preview-excel').innerHTML = `<div style="font-size:11px; font-weight:600; color:var(--acc2); padding-top:5px;">✓ Đã xử lý Ads File: ${filename}</div>`;
 }
 
-function handleKosuAdsFile(files) {
-  if (!files || files.length === 0) return;
-  const f = files[0];
-  const r = new FileReader();
-  r.onload = e => {
-    let rawText = '';
-    if (f.name.match(/\.(xlsx|xls)$/i)) {
-      const data = new Uint8Array(e.target.result); 
-      const workbook = XLSX.read(data, {type: 'array'}); 
-      rawText = XLSX.utils.sheet_to_csv(workbook.Sheets[workbook.SheetNames[0]]);
-    } else {
-      try { rawText = new TextDecoder('utf-8', { fatal: true }).decode(e.target.result); } 
-      catch(err) { rawText = new TextDecoder('windows-1258').decode(e.target.result); }
-    }
-    processKosuAdsCSV(rawText, f.name);
-  };
-  r.readAsArrayBuffer(f);
-}
-
-function processKosuAdsCSV(rawText, filename) {
-  try {
-    let lines = rawText.split(/\r?\n/);
-    function parseCSVRow(str) { if (!str) return []; let arr = []; let quote = false; let cell = ''; for (let c = 0; c < str.length; c++) { if (str[c] === '"') { quote = !quote; } else if (str[c] === ',' && !quote) { arr.push(cell.trim()); cell = ''; } else { cell += str[c]; } } arr.push(cell.trim()); return arr; }
-    
-    let spendIdx = -1;
-    let campIdx = -1;
-    let startRow = 0;
-    
-    // 1. Tìm dòng tiêu đề chứa chữ "Chi tiêu"
-    for (let i = 0; i < Math.min(15, lines.length); i++) {
-      let row = parseCSVRow(lines[i]);
-      let strRow = row.join('').toLowerCase();
-      if (strRow.includes('amount spent') || strRow.includes('chi tiêu') || strRow.includes('chi phí') || strRow.includes('số tiền đã chi')) {
-        let headers = row.map(h => h.toLowerCase().trim());
-        spendIdx = headers.findIndex(h => h.includes('amount spent') || h.includes('chi tiêu') || h.includes('chi phí') || h.includes('số tiền đã chi'));
-        campIdx = headers.findIndex(h => h.includes('campaign name') || h.includes('tên chiến dịch'));
-        startRow = i + 1; 
-        break;
-      }
-    }
-
-    let totalSpend = 0;
-    // 2. Cộng dồn cột chi tiêu (Loại trừ dòng Tổng cộng của FB)
-    if (spendIdx !== -1) {
-      for (let i = startRow; i < lines.length; i++) {
-        if (!lines[i].trim()) continue;
-        let row = parseCSVRow(lines[i]);
-        if (row.length <= spendIdx) continue;
-        
-        let campName = campIdx !== -1 ? (row[campIdx] || '').toLowerCase() : '';
-        // Bỏ qua dòng tổng cộng của FB để không bị cộng gấp đôi
-        if (campName === 'total' || campName === 'tổng cộng' || campName === '—' || campName === '') continue;
-        
-        let spend = parseAnyNum(row[spendIdx]);
-        totalSpend += spend;
-      }
-      
-      // 3. Tự động điền vào ô Input trên giao diện
-      if (totalSpend > 0) {
-          const spendInput = document.getElementById('spend-k');
-          if (spendInput) {
-              spendInput.value = Math.round(totalSpend).toLocaleString('vi-VN');
-              // Đổi màu viền và chữ sang xanh lá để sếp biết là AI đã tự điền thành công
-              spendInput.style.borderColor = 'var(--acc2)';
-              spendInput.style.color = 'var(--acc2)';
-          }
-          kosuSpend.total = totalSpend; // Lưu vào biến hệ thống
-      }
-    }
-
-    kosuAdsTextData = `\n=== DỮ LIỆU ADS KOSU (${filename}) ===\n` + rawText.substring(0, 3000); 
-    document.getElementById('preview-kosu-ads').innerHTML = `<div style="font-size:11px; font-weight:600; color:var(--acc2); padding-top:5px;">✓ Đã tải File Ads & Tự động cộng chi tiêu: ${filename}</div>`;
-  } catch (err) {
-    kosuAdsTextData = "";
-    document.getElementById('preview-kosu-ads').innerHTML = `<div style="font-size:11px; color:var(--danger); padding-top:5px;">❌ Lỗi đọc Ads: ${err.message}</div>`;
-  }
-}
-
 function handleKosuSapoFile(files) {
   if (!files || files.length === 0) return;
   const f = files[0];
@@ -1466,7 +1388,7 @@ function processKosuSapoCSV(csvText, filename) {
         productStats[prodName] = (productStats[prodName] || 0) + qty;
       }
 
-      let normalizedCity = city.replace(/\s+/g, ' '); 
+      let normalizedCity = city.replace(/\s+/g, ' ');
       if (normalizedCity.includes("hà nội") || normalizedCity.includes("ha noi")) { regionalDt.hn += dt; }
       else if (normalizedCity.includes("hồ chí minh") || normalizedCity.includes("ho chi minh") || normalizedCity === "hcm") { regionalDt.hcm += dt; }
       else { regionalDt.conlai += dt; }
@@ -1494,17 +1416,16 @@ function processKosuSapoCSV(csvText, filename) {
     }
 
     let topProducts = Object.entries(productStats).sort((a, b) => b[1] - a[1]).slice(0, 10).map(p => `${p[0]}`);
-
     function fmt(num) { return Math.round(num).toLocaleString('vi-VN'); }
     
     window.kosuSapoStats = { 
-        totalDt: totalDt, 
-        dtHn: regionalDt.hn, 
-        dtHcm: regionalDt.hcm, 
-        dtConLai: regionalDt.conlai,
-        dtPageChinh: stats["Page Chính"].dt,
-        dtPagePhu: stats["Page Phụ"].dt,
-        topProducts: topProducts.join(", ") 
+      totalDt: totalDt, 
+      dtHn: regionalDt.hn, 
+      dtHcm: regionalDt.hcm, 
+      dtConLai: regionalDt.conlai,
+      dtPageChinh: stats["Page Chính"].dt,
+      dtPagePhu: stats["Page Phụ"].dt,
+      topProducts: topProducts.join(", ") 
     };
 
     kosuSapoTextData = `=== DỮ LIỆU DOANH THU THỰC TẾ TỪ SAPO ===\n`;
@@ -1535,6 +1456,145 @@ function processKosuSapoCSV(csvText, filename) {
   } catch (err) {
     kosuSapoTextData = "";
     document.getElementById('preview-kosu-sapo').innerHTML = `<div style="font-size:11px; color:var(--danger); padding-top:5px;">❌ Lỗi đọc Sapo: ${err.message}</div>`;
+  }
+}
+
+function handleKosuAdsFile(files) {
+  if (!files || files.length === 0) return;
+  const f = files[0];
+  const r = new FileReader();
+  r.onload = e => {
+    let rawText = '';
+    if (f.name.match(/\.(xlsx|xls)$/i)) {
+      const data = new Uint8Array(e.target.result); 
+      const workbook = XLSX.read(data, {type: 'array'}); 
+      rawText = XLSX.utils.sheet_to_csv(workbook.Sheets[workbook.SheetNames[0]]);
+    } else {
+      try { rawText = new TextDecoder('utf-8', { fatal: true }).decode(e.target.result); } 
+      catch(err) { rawText = new TextDecoder('windows-1258').decode(e.target.result); }
+    }
+    processKosuAdsCSV(rawText, f.name);
+  };
+  r.readAsArrayBuffer(f);
+}
+
+function processKosuAdsCSV(csvText, filename) {
+  try {
+    let lines = csvText.split(/\r?\n/); 
+    let nameIdx = -1, spendIdx = -1;
+    function parseCSVRow(str) { if (!str) return []; let arr = []; let quote = false; let cell = ''; for (let c = 0; c < str.length; c++) { if (str[c] === '"') { quote = !quote; } else if (str[c] === ',' && !quote) { arr.push(cell.trim()); cell = ''; } else { cell += str[c]; } } arr.push(cell.trim()); return arr; }
+    
+    let startRow = 0;
+    for (let i = 0; i < Math.min(15, lines.length); i++) {
+      let row = parseCSVRow(lines[i]); let strRow = row.join('').toLowerCase();
+      if (strRow.includes('amount spent') || strRow.includes('chi tiêu') || strRow.includes('chi phí')) {
+        let headers = row.map(h => h.toLowerCase().trim()); 
+        nameIdx = headers.findIndex(h => h.includes('name') || h.includes('tên')); 
+        spendIdx = headers.findIndex(h => h.includes('amount spent') || h.includes('chi tiêu') || h.includes('chi phí') || h.includes('số tiền')); 
+        startRow = i + 1; break;
+      }
+    }
+
+    if (nameIdx === -1 || spendIdx === -1) throw new Error("Không tìm thấy cột Tên chiến dịch hoặc Chi tiêu.");
+
+    let stats = {
+      pageChinh: 0,
+      pagePhu: 0,
+      ldpSpend: 0,
+      excluded: 0,
+      managers: {
+        "AnhVV (LVS, NVL)": 0,
+        "Trangle (ĐQ, NGĐ)": 0,
+        "quantm (Mỹ Đình, TĐN)": 0,
+        "ChungPV (Time, NTT)": 0,
+        "Vanh (TH, HBT)": 0,
+        "Khác": 0
+      }
+    };
+
+    let totalSpend = 0;
+
+    for (let i = startRow; i < lines.length; i++) {
+      if (!lines[i].trim()) continue; 
+      let row = parseCSVRow(lines[i]); 
+      if (row.length <= Math.max(nameIdx, spendIdx)) continue;
+      
+      let n = row[nameIdx] || ""; let nLower = n.toLowerCase(); 
+      let spend = parseAnyNum(row[spendIdx]);
+      
+      if (!nLower || nLower === "total" || nLower.includes("tổng cộng") || nLower === "—") continue;
+
+      totalSpend += spend;
+
+      let isChuyenDoi = nLower.includes("chuyển đổi") || nLower.includes("chuyen doi");
+      let isCPO = nLower.includes("cpo");
+      let isLivestream = nLower.includes("livestream"); 
+      let isJPS = nLower.includes("jps");
+
+      // LDP: các chiến dịch chứa "chuyển đổi"
+      if (isChuyenDoi) {
+        stats.ldpSpend += spend;
+      }
+
+      // Phân bổ Page Chính / Page Phụ
+      if (isCPO || isLivestream) {
+        stats.excluded += spend;
+      } else if (isJPS) {
+        // Page chính: chứa JPS, loại trừ Chuyển đổi
+        if (isChuyenDoi) {
+          stats.excluded += spend; 
+        } else {
+          stats.pageChinh += spend;
+        }
+      } else {
+        // Page phụ: không chứa JPS, CPO, Livestream
+        stats.pagePhu += spend;
+        
+        if (nLower.includes("lvs") || nLower.includes("nvl")) stats.managers["AnhVV (LVS, NVL)"] += spend;
+        else if (nLower.includes("đq") || nLower.includes("ngđ")) stats.managers["Trangle (ĐQ, NGĐ)"] += spend;
+        else if (nLower.includes("mỹ đình") || nLower.includes("tđn")) stats.managers["quantm (Mỹ Đình, TĐN)"] += spend;
+        else if (nLower.includes("time") || nLower.includes("ntt")) stats.managers["ChungPV (Time, NTT)"] += spend;
+        else if (nLower.includes("th") || nLower.includes("hbt")) stats.managers["Vanh (TH, HBT)"] += spend;
+        else stats.managers["Khác"] += spend;
+      }
+    }
+    
+    kosuSpend = { 
+      total: totalSpend, 
+      chinh: stats.pageChinh, 
+      phu: stats.pagePhu, 
+      ldp: stats.ldpSpend, 
+      excluded: stats.excluded, 
+      managers: stats.managers 
+    };
+
+    function fmt(num) { return Math.round(num).toLocaleString('vi-VN'); }
+    
+    kosuAdsTextData = `=== DỮ LIỆU CHI TIÊU ADS TỪ EXCEL (Đã tự động lọc và cộng dồn) ===\n`;
+    kosuAdsTextData += `- Tổng chi tiêu toàn dự án Kosu: ${fmt(totalSpend)} VND\n`;
+    kosuAdsTextData += `- Chi tiêu Page Chính (JPS - Đã loại trừ CPO/Live/Chuyển đổi): ${fmt(stats.pageChinh)} VND\n`;
+    kosuAdsTextData += `- Chi tiêu Page Phụ (Loại trừ JPS/CPO/Live, ĐÃ BAO GỒM LDP): ${fmt(stats.pagePhu)} VND\n`;
+    kosuAdsTextData += `- Chi tiêu LDP (Chiến dịch Chuyển đổi): ${fmt(stats.ldpSpend)} VND\n`;
+    kosuAdsTextData += `Chi tiết Page Phụ theo nhân sự:\n`;
+    kosuAdsTextData += `  + AnhVV (LVS, NVL): ${fmt(stats.managers["AnhVV (LVS, NVL)"])} VND\n`;
+    kosuAdsTextData += `  + Trangle (ĐQ, NGĐ): ${fmt(stats.managers["Trangle (ĐQ, NGĐ)"])} VND\n`;
+    kosuAdsTextData += `  + quantm (Mỹ Đình, TĐN): ${fmt(stats.managers["quantm (Mỹ Đình, TĐN)"])} VND\n`;
+    kosuAdsTextData += `  + ChungPV (Time, NTT): ${fmt(stats.managers["ChungPV (Time, NTT)"])} VND\n`;
+    kosuAdsTextData += `  + Vanh (TH, HBT): ${fmt(stats.managers["Vanh (TH, HBT)"])} VND\n`;
+    if (stats.managers["Khác"] > 0) kosuAdsTextData += `  + Các chiến dịch khác không rõ tên: ${fmt(stats.managers["Khác"])} VND\n`;
+
+    // Tự động điền tổng chi tiêu vào ô input
+    const spendInput = document.getElementById('spend-k');
+    if (spendInput && totalSpend > 0) {
+      spendInput.value = Math.round(totalSpend).toLocaleString('vi-VN');
+      spendInput.style.borderColor = 'var(--acc2)';
+      spendInput.style.color = 'var(--acc2)';
+    }
+
+    document.getElementById('preview-kosu-ads').innerHTML = `<div style="font-size:11px; font-weight:600; color:var(--kosu); padding-top:5px;">✓ Đã tách chi phí Page Chính/Phụ/LDP: ${filename}</div>`;
+  } catch (err) {
+    kosuAdsTextData = "";
+    document.getElementById('preview-kosu-ads').innerHTML = `<div style="font-size:11px; color:var(--danger); padding-top:5px;">❌ Lỗi đọc file Ads: ${err.message}</div>`;
   }
 }
 
@@ -1965,34 +2025,51 @@ async function doCopyKosuText() {
 
 function renderKosuTuan(d, period, from, to, spendTotal, budgetHn, budgetHcm, manualKhmHn, manualKhmHcm) {
   const k = d.kosu || {};
-  const tpl = document.getElementById('tpl-kosu-tuan');
-  if (!tpl) return;
-
-  const clone = tpl.content.cloneNode(true);
-  
-  // 1. Điền thông tin tiêu đề
-  const rperiod = period ? `Tuần ${period}` : '';
   const dr = (from && to) ? ` (Từ ${from} đến ${to})` : '';
-  clone.querySelector('.rweek').textContent = rperiod;
-  clone.querySelector('.rtitle').textContent = `Báo Cáo VIP — Giày Kosu${dr}`;
+  const rperiod = period ? `Tuần ${period}` : '';
 
-  // 2. Tính toán các thông số chuyên sâu (giữ nguyên logic gốc của bạn)
   const sapoDt = window.kosuSapoStats?.totalDt || 0;
   const topSp = window.kosuSapoStats?.topProducts || k.top_sp || "—";
   const kpi = parseNum(k.dt_don_hang_kpi) || 1; 
   const sapoPct = sapoDt > 0 ? ((sapoDt / kpi) * 100).toFixed(0) + '%' : '—';
   const dttSauThue = sapoDt > 0 ? sapoDt / 1.08 : 0;
-  const khmHn = (manualKhmHn !== null && !isNaN(manualKhmHn)) ? manualKhmHn : (parseNum(k.khm?.hn) || 0);
-  const khmHcm = (manualKhmHcm !== null && !isNaN(manualKhmHcm)) ? manualKhmHcm : (parseNum(k.khm?.hcm) || 0);
+
+  const khmHn = manualKhmHn !== null && !isNaN(manualKhmHn) ? manualKhmHn : (parseNum(k.khm?.hn) || 0);
+  const khmHcm = manualKhmHcm !== null && !isNaN(manualKhmHcm) ? manualKhmHcm : (parseNum(k.khm?.hcm) || 0);
+
   const dtOnlineHn = window.kosuSapoStats?.dtHn || 0;
   const dtOnlineHcm = window.kosuSapoStats?.dtHcm || 0;
   const dtOnlineConlai = window.kosuSapoStats?.dtConLai || 0;
+
   const dtHtHn = dtOnlineHn + khmHn;
   const dtHtHcm = dtOnlineHcm + khmHcm;
   const budgetConlai = spendTotal - budgetHn - budgetHcm;
 
-  // 3. Xây dựng nội dung Text Report (Dùng template literal để giữ format xuống dòng)
-  const mainText = `<strong>${rperiod}:${dr}</strong>
+  const cpqcSapo = sapoDt > 0 ? pctFormat(spendTotal, sapoDt) : '—';
+
+  const spendChinh = kosuSpend?.chinh > 0 ? kosuSpend.chinh : parseNum(k.page_chinh?.chi_tieu);
+  const dtChinh = window.kosuSapoStats?.dtPageChinh || parseNum(k.page_chinh?.doanh_so) || 0;
+  const cpqcChinh = dtChinh > 0 ? pctFormat(spendChinh, dtChinh) : k.page_chinh?.cpqc || '—';
+
+  const spendPhu = kosuSpend?.phu > 0 ? kosuSpend.phu : parseNum(k.page_phu?.chi_tieu);
+  const dtPhu = window.kosuSapoStats?.dtPagePhu || parseNum(k.page_phu?.doanh_so) || 0;
+  const cpqcPhu = dtPhu > 0 ? pctFormat(spendPhu, dtPhu) : k.page_phu?.cpqc || '—';
+
+  const spendLdp = kosuSpend?.ldp > 0 ? kosuSpend.ldp : parseNum(k.ldp?.chi_tieu);
+  const dtLdp = parseNum(k.ldp?.doanh_so) || 0;
+  const cpqcLdp = dtLdp > 0 ? pctFormat(spendLdp, dtLdp) : k.ldp?.cpqc || '—';
+
+  const html = `
+    <div class="report" id="rpt" style="max-width: 800px;">
+        <div class="rh" style="border-bottom-color: var(--kosu); display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <div class="rweek" style="color:var(--kosu);">${rperiod}</div>
+                <div class="rtitle">Báo Cáo VIP — Giày Kosu${dr}</div>
+            </div>
+            <button id="btn-copy-kosu" class="btn-copy" style="border-color: var(--kosu); color: var(--kosu);" onclick="doCopyKosuText()">⎘ Copy Text Report</button>
+        </div>
+
+        <div id="kosu-text-report" style="background:var(--sur); padding:25px; border-radius:12px; border:1px solid rgba(255,152,0,0.4); font-size:14px; line-height:1.8; font-family: 'Be Vietnam Pro', sans-serif; color:var(--tx); white-space: pre-wrap; box-shadow: 0 4px 20px rgba(0,0,0,0.2);"><strong>${rperiod}:${dr}</strong>
 - Số tiền chi tiêu: ${fmtNum(spendTotal)} (${k.chi_tieu_pct || ''})
 + So với cùng kì tháng trước: ${k.chi_tieu_mom || ''}
 + So với cùng kì năm trước: ${k.chi_tieu_yoy || ''}
@@ -2004,7 +2081,7 @@ DTT sau thuế: ${fmtNum(dttSauThue)}
 
 - GTTB Đơn hàng: ${k.gttb || '—'}
 - Chi phí QC theo đơn hàng: ${k.cpqc_don_hang || '—'}
-- Chi phí QC theo sapo: ${sapoDt > 0 ? pctFormat(spendTotal, sapoDt) : '—'}
+- Chi phí QC theo sapo: ${cpqcSapo}
 + So với cùng kì tháng trước: ${k.cpqc_mom || '—'}
 + So với cùng kì năm trước: ${k.cpqc_yoy || '—'}
 
@@ -2024,16 +2101,16 @@ Các mã hiện tại đang chạy doanh số lớn: ${topSp}
 
 Page chính:
 * Data page chính: ${k.page_chinh?.data || '—'} - Chiếm ${k.page_chinh?.chiem_pct || '—'} - Đạt ${k.page_chinh?.dat_pct || '—'} - Tỷ lệ chốt: ${k.page_chinh?.tl_chot || '—'} (${k.page_chinh?.don || '—'} đơn)
-Chi tiêu: ${fmtNum(parseNum(k.page_chinh?.chi_tieu))}, doanh số: ${fmtNum(parseNum(k.page_chinh?.doanh_so))}, CPQC: ${k.page_chinh?.cpqc || '—'}
+Chi tiêu: ${fmtNum(spendChinh)}, doanh số: ${fmtNum(dtChinh)}, CPQC: ${cpqcChinh}
 
 Page phụ: (chạy data và LDP)
 * Data page CH: ${k.page_phu?.data || '—'} - Chiếm ${k.page_phu?.chiem_pct || '—'} - Đạt ${k.page_phu?.dat_pct || '—'} - Tỷ lệ chốt: ${k.page_phu?.tl_chot || '—'} (${k.page_phu?.don || '—'} đơn)
-Chi tiêu: ${fmtNum(parseNum(k.page_phu?.chi_tieu))}, doanh_số: ${fmtNum(parseNum(k.page_phu?.doanh_so))}, CPQC: ${k.page_phu?.cpqc || '—'}
+Chi tiêu: ${fmtNum(spendPhu)}, doanh số: ${fmtNum(dtPhu)}, CPQC: ${cpqcPhu}
 
 - Data LDP đạt ${k.ldp?.dat_pct || '—'}: ${k.ldp?.dat || '—'}/${k.ldp?.tong || '—'}
 Tỷ lệ chốt đơn: ${k.ldp?.chot_don_thuc || '—'}/${k.ldp?.chot_don_tong || '—'} -> ${k.ldp?.tl_chot_don || '—'}
 Tỷ lệ đơn thành công: ${k.ldp?.don_tc_thuc || '—'}/${k.ldp?.don_tc_tong || '—'} => ${k.ldp?.tl_don_tc || '—'}
-Chi tiêu: ${fmtNum(parseNum(k.ldp?.chi_tieu))}, doanh số: ${fmtNum(parseNum(k.ldp?.doanh_so))}, CPQC: ${k.ldp?.cpqc || '—'}
+Chi tiêu: ${fmtNum(spendLdp)}, doanh số: ${fmtNum(dtLdp)}, CPQC: ${cpqcLdp}
 
 <strong>PHÂN BỔ NGÂN SÁCH VÀ DOANH THU THEO KHU VỰC</strong>
 + Hà Nội:
@@ -2047,26 +2124,23 @@ Doanh số hệ thống HCM: ${fmtNum(dtHtHcm)} - CPQC: ${pctFormat(budgetHcm, d
 Doanh số Online: ${fmtNum(dtOnlineHcm)} - CPQC: ${pctFormat(budgetHcm, dtOnlineHcm)}
 
 + Còn lại
-Ngân sách: ${fmtNum(budgetConlai)}, doanh số: ${fmtNum(dtOnlineConlai)} - CPQC: ${pctFormat(budgetConlai, dtOnlineConlai)}`;
+Ngân sách: ${fmtNum(budgetConlai)}, doanh số: ${fmtNum(dtOnlineConlai)} - CPQC: ${pctFormat(budgetConlai, dtOnlineConlai)}
 
-  // 4. Đưa nội dung văn bản vào giao diện
-  clone.querySelector('.kosu-main-text').innerHTML = mainText;
+<div id="kosu-eval-container" style="margin-top: 15px; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 15px;">
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+    <strong>ĐÁNH GIÁ VÀ KẾT LUẬN TỪ AI</strong>
+    <button class="btn-magic opt" style="display:inline-flex; align-items:center; padding:4px 8px; font-size:10px; cursor:pointer;" onclick="regenerateKosuEval(this)">🔄 Viết lại đánh giá</button>
+</div>
+<div id="kosu-eval-content">Đánh giá:
+${Array.isArray(k.danh_gia) ? k.danh_gia.map(item => '- ' + item).join('\n') : (k.danh_gia ? '- ' + k.danh_gia : '—')}
 
-  // 5. Xử lý phần Đánh giá AI
-  const evalContent = clone.querySelector('#kosu-eval-content');
-  let evalText = `Đánh giá:\n`;
-  if (Array.isArray(k.danh_gia)) {
-    evalText += k.danh_gia.map(item => '- ' + item).join('\n');
-  } else {
-    evalText += k.danh_gia ? '- ' + k.danh_gia : '—';
-  }
-  evalText += `\n\nKết luận:\n=> ${k.ket_luan || '—'}`;
-  evalContent.textContent = evalText;
+Kết luận:
+=> ${k.ket_luan || '—'}</div>
+</div></div>
+    </div>
+  `;
 
-  // 6. Hiển thị ra màn hình
-  const out = document.getElementById('out');
-  out.innerHTML = '';
-  out.appendChild(clone);
+  document.getElementById('out').innerHTML = html;
 }
 
 function renderKosuThang(d, period, from, to) {
