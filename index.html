@@ -2033,6 +2033,8 @@ function renderKosuTuan(d, period, from, to, spendTotal, budgetHn, budgetHcm, ma
   const kpi = parseNum(k.dt_don_hang_kpi) || 1; 
   const sapoPct = sapoDt > 0 ? ((sapoDt / kpi) * 100).toFixed(0) + '%' : '—';
   const dttSauThue = sapoDt > 0 ? sapoDt / 1.08 : 0;
+  const dtDonHang = parseNum(k.dt_don_hang) || 0; 
+  const cpqcDonHang = dtDonHang > 0 ? pctFormat(spendTotal, dtDonHang) : '—';
 
   const khmHn = manualKhmHn !== null && !isNaN(manualKhmHn) ? manualKhmHn : (parseNum(k.khm?.hn) || 0);
   const khmHcm = manualKhmHcm !== null && !isNaN(manualKhmHcm) ? manualKhmHcm : (parseNum(k.khm?.hcm) || 0);
@@ -2080,7 +2082,7 @@ Sapo: ${fmtNum(sapoDt)} - ${sapoPct}
 DTT sau thuế: ${fmtNum(dttSauThue)}
 
 - GTTB Đơn hàng: ${k.gttb || '—'}
-- Chi phí QC theo đơn hàng: ${k.cpqc_don_hang || '—'}
+- Chi phí QC theo đơn hàng: ${cpqcDonHang}
 - Chi phí QC theo sapo: ${cpqcSapo}
 + So với cùng kì tháng trước: ${k.cpqc_mom || '—'}
 + So với cùng kì năm trước: ${k.cpqc_yoy || '—'}
