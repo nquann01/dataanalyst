@@ -235,6 +235,7 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
   cursor: not-allowed;
   opacity: 0.5;
   filter: grayscale(1);
+  }
 /* Thêm vào cuối block <style> hiện tại */
 @media print {
   .pb, .analysis-box, .stbl tr, .nblk,
@@ -248,6 +249,261 @@ textarea::placeholder{color:var(--tx3);}textarea:focus{color:var(--tx);}
 .stbl, [style*="overflow-x:auto"],
 [style*="overflow-x: auto"] {
   overflow-x: visible !important;
+}
+/* ========================================================= */
+/* 🚀 GIAO DIỆN "WOW" - CYBERPUNK & WEB3 SAAS STYLE 🚀 */
+/* ========================================================= */
+
+/* 1. NỀN ÁNH SÁNG MÔI TRƯỜNG (AMBIENT LIGHT) CỰC ẢO */
+body {
+  background-color: #050505 !important;
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(79, 124, 255, 0.08), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(56, 224, 176, 0.08), transparent 25%);
+  background-attachment: fixed;
+}
+/* Hiệu ứng lưới chấm bi chìm bên dưới để tạo cảm giác Tech */
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: -1;
+  background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+  pointer-events: none;
+}
+
+/* 2. HEADER PHONG CÁCH THANH ĐIỀU HƯỚNG TÀU VŨ TRỤ */
+header {
+  background: rgba(10, 10, 15, 0.6) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+.logo {
+  background: linear-gradient(135deg, #4f7cff, #38e0b0);
+  box-shadow: 0 0 20px rgba(56, 224, 176, 0.5);
+  border-radius: 10px;
+  color: #fff;
+  animation: pulse-logo 3s ease-in-out infinite;
+}
+@keyframes pulse-logo {
+  0%, 100% { box-shadow: 0 0 15px rgba(79, 124, 255, 0.4); }
+  50% { box-shadow: 0 0 25px rgba(56, 224, 176, 0.7); transform: scale(1.05); }
+}
+
+/* 3. KHỐI KÍNH CƯỜNG LỰC SÂU (ULTRA GLASS) CÓ VIỀN SÁNG GÓC */
+.iblock, .pb, .analysis-box, #kosu-text-report {
+  background: linear-gradient(145deg, rgba(20, 24, 35, 0.7), rgba(10, 12, 18, 0.9)) !important;
+  backdrop-filter: blur(24px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.04) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important; /* Ánh sáng chiếu từ trên xuống */
+  border-radius: 16px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.iblock:hover, .pb:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(79, 124, 255, 0.1) !important;
+  border-color: rgba(79, 124, 255, 0.3) !important;
+}
+.iblock-hdr, .phdr {
+  background: linear-gradient(90deg, rgba(255,255,255,0.03), transparent) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+/* 4. NÚT BẤM "TẠO BÁO CÁO" QUÉT SÁNG ANIMATION SHIMMER */
+.btn-gen {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(90deg, #4f7cff, #8ca8ff, #4f7cff) !important;
+  background-size: 200% auto !important;
+  color: #fff !important;
+  box-shadow: 0 0 20px rgba(79, 124, 255, 0.4) !important;
+  border-radius: 12px !important;
+  animation: shimmer 3s linear infinite !important;
+  border: none !important;
+  font-weight: 800 !important;
+  letter-spacing: 1px;
+}
+@keyframes shimmer {
+  to { background-position: 200% center; }
+}
+.btn-gen:hover:not(:disabled) {
+  transform: scale(1.02);
+  box-shadow: 0 0 30px rgba(79, 124, 255, 0.6) !important;
+}
+
+/* 5. CÁC NÚT TÍNH NĂNG (✨ Đề xuất, 🔮 Dự báo) PHÁT SÁNG KHI HOVER */
+.btn-magic.opt { background: rgba(255, 188, 87, 0.1) !important; border: 1px solid rgba(255, 188, 87, 0.3) !important; }
+.btn-magic.opt:hover:not(:disabled) { background: rgba(255, 188, 87, 0.2) !important; box-shadow: 0 0 15px rgba(255, 188, 87, 0.5) !important; border-color: var(--warn) !important; }
+
+.btn-magic.fc { background: rgba(179, 136, 255, 0.1) !important; border: 1px solid rgba(179, 136, 255, 0.3) !important; }
+.btn-magic.fc:hover:not(:disabled) { background: rgba(179, 136, 255, 0.2) !important; box-shadow: 0 0 15px rgba(179, 136, 255, 0.5) !important; border-color: var(--fc) !important; }
+
+/* 6. NEON GLOW CHO CÁC CON SỐ CHỈ SỐ QUAN TRỌNG */
+.mval {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.5px;
+}
+.mval.g { color: #38e0b0 !important; text-shadow: 0 0 12px rgba(56, 224, 176, 0.5); }
+.mval.w { color: #ffbc57 !important; text-shadow: 0 0 12px rgba(255, 188, 87, 0.5); }
+.mval.b { color: #ff5f7e !important; text-shadow: 0 0 12px rgba(255, 95, 126, 0.5); }
+.stbl td { font-size: 11px !important; }
+
+/* 7. DROPZONE (KHU VỰC KÉO THẢ) NHƯ BẢNG ĐIỀU KHIỂN HOLOGRAM */
+.drop-zone {
+  border: 1px dashed rgba(255, 255, 255, 0.2) !important;
+  background: rgba(0, 0, 0, 0.2) !important;
+  border-radius: 12px !important;
+  transition: all 0.3s ease !important;
+}
+.drop-zone:hover {
+  border: 1px solid var(--acc2) !important;
+  background: rgba(56, 224, 176, 0.05) !important;
+  box-shadow: inset 0 0 20px rgba(56, 224, 176, 0.1) !important;
+}
+
+/* 8. INPUT FIELD TƯƠNG LAI */
+input, textarea, select {
+  background: rgba(0, 0, 0, 0.2) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  color: #fff !important;
+  border-radius: 8px !important;
+}
+input:focus, textarea:focus {
+  border-color: var(--acc) !important;
+  box-shadow: 0 0 10px rgba(79, 124, 255, 0.3), inset 0 0 5px rgba(79, 124, 255, 0.2) !important;
+  background: rgba(0, 0, 0, 0.4) !important;
+}
+
+/* 9. THANH CUỘN (SCROLLBAR) TÀNG HÌNH TINH TẾ */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(79, 124, 255, 0.5); box-shadow: 0 0 10px rgba(79, 124, 255, 0.5); }
+
+/* 10. TABS CHỌN ẢO DIỆU */
+.tabs { background: rgba(0,0,0,0.4) !important; border: 1px solid rgba(255,255,255,0.05) !important; border-radius: 12px !important;}
+.tabs label { border-radius: 8px !important; transition: all 0.3s ease; }
+.tabs input:checked + label {
+  background: linear-gradient(180deg, rgba(79,124,255,0.2), rgba(79,124,255,0.05)) !important;
+  border: 1px solid rgba(79,124,255,0.4) !important;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
+  color: #fff !important;
+  text-shadow: 0 0 8px rgba(255,255,255,0.5);
+}
+
+/* THANH TIẾN ĐỘ BÊN TRONG BẢNG (PROGRESS BAR) CHẠY SÁNG */
+.stbl td div[style*="background:var(--acc2)"],
+.stbl td div[style*="background:var(--warn)"],
+.stbl td div[style*="background:var(--danger)"] {
+  position: relative;
+  overflow: hidden;
+}
+.stbl td div[style*="background:var(--acc2)"]::after,
+.stbl td div[style*="background:var(--warn)"]::after,
+.stbl td div[style*="background:var(--danger)"]::after {
+  content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: bar-sweep 2s infinite;
+}
+@keyframes bar-sweep { 100% { left: 200%; } }
+/* ========================================================= */
+/* ✨ ĐỘ LẠI PHẦN NỘI DUNG RENDER BÊN TRONG BÁO CÁO ✨ */
+/* ========================================================= */
+
+/* 1. Tiêu đề báo cáo (Title): Dùng hiệu ứng chữ Gradient kim loại chuẩn Apple */
+.rtitle {
+  font-size: 24px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em !important;
+  background: linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-top: 4px;
+}
+.rweek {
+  font-size: 11px !important;
+  letter-spacing: 0.15em !important;
+  color: var(--acc2) !important; /* Xanh ngọc phát sáng nhẹ */
+}
+
+/* 2. Khối chứa số liệu (Metrics Grid): Tách rời các ô thay vì dính liền */
+.mgrid {
+  display: grid !important;
+  gap: 12px !important; /* Tạo khoảng hở giữa các ô chỉ số */
+  padding: 16px !important;
+  background: transparent !important; 
+}
+
+/* 3. Các thẻ chỉ số (Metric Cards): Nổi khối, bo tròn như Widget iOS */
+.mc {
+  background: #111111 !important;
+  border: 1px solid var(--bdr) !important;
+  border-radius: 12px !important;
+  padding: 16px 20px !important;
+  transition: all 0.2s ease !important;
+}
+.mc:hover {
+  background: #1a1a1a !important;
+  border-color: #3f3f46 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
+}
+.mlbl {
+  color: #a1a1aa !important; /* Xám dịu dễ đọc */
+  font-size: 11px !important;
+}
+.mval {
+  font-size: 20px !important; /* Cho số liệu to và rõ ràng hơn */
+  font-weight: 700 !important;
+  margin-top: 6px !important;
+  letter-spacing: -0.02em;
+}
+
+/* 4. Khung Đánh giá AI (AI Analysis Box): Cảm giác công nghệ cao */
+.analysis-box {
+  background: linear-gradient(180deg, #111111 0%, #0a0a0a 100%) !important;
+  border: 1px solid var(--bdr) !important;
+  border-left: 3px solid var(--acc2) !important; /* Vạch nhấn bên trái */
+  border-radius: 12px !important;
+  padding: 20px 24px !important;
+  margin: 16px !important;
+}
+.analysis-title {
+  font-size: 16px !important;
+  color: #fff !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* 5. Đầu mục các khối dự án (Project Headers) */
+.phdr {
+  background: transparent !important;
+  border-bottom: 1px solid var(--bdr) !important;
+  padding: 16px 20px !important;
+}
+.pname {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em;
+}
+
+/* 6. Phần text thô (Dành riêng cho Kosu Text Report) */
+#kosu-text-report {
+  background: #0f0f0f !important;
+  border: 1px solid var(--bdr) !important;
+  border-radius: 16px !important;
+  color: #d4d4d8 !important; /* Màu xám sáng, đỡ gắt mắt hơn trắng tinh */
+}
+
+/* 7. Huy hiệu (Badges) như chữ "tính" trong công thức */
+.calc-badge {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #a1a1aa !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 4px !important;
+  padding: 2px 6px !important;
 }
 </style>
 </head>
